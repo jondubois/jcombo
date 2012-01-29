@@ -177,7 +177,7 @@ var $j = {
 			The jRequest parameter is optional and should be set when you want to load a template 
 			dynamically at runtime.
 			If the jRequest parameter is omitted, this function will return the compiled handlebars 
-			template - Otherwise it will return nothing; the template will need to be accessed through jRequest's 
+			template - Otherwise it will return nothing; the compiled template will need to be accessed through jRequest's 
 			success handler.
 		*/
 		handlebars: function(name, jRequest) {

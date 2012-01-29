@@ -15,3 +15,5 @@ make client-side use of functionality that is otherwise exclusive to the servers
 Effectively, server interfaces offer client-side developers a layer of abstraction when dealing with underlying server-side functionality.
 JCombo also captures all server-side errors and exceptions and throws them on the client side so you can easily see them from your browser console.
 For more info on how to use JCombo please visit http://jcombo.com/.
+
+JCombo is licensed under the MIT License (see license_mit.txt) with the exception of the Bootstrap library which is licensed under the Apache License 2.0 (see license_apache.txt).
