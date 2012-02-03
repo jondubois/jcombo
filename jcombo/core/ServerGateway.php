@@ -126,6 +126,7 @@ class ServerGateway {
 		Sends back a response to the client.
 	*/
 	public static function respond($object, $success=true) {
+		header('Content-type: application/json');
 		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).'}';
 		exit;
 	}

@@ -5,7 +5,6 @@
 <title>JCombo App</title>
 <style type="text/css">
 body {
-	height:1200px;
 	font-family:Arial, Helvetica, sans-serif;
 }
 </style>
