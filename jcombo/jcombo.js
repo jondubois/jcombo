@@ -367,20 +367,22 @@ var $j = {
 	
 	acall: function(className, method, params, handler) {
 		$j.validateCall(className, method, params);
-	
-		var type = typeof handler;
-		if(type != "object") {
-			throw $j.errors.serverGatewayError("The specified handler must be a valid JavaScript Object; " + type + " was found");
-		}
 		var jRequest = {};
-		if(handler.success) {
-			jRequest.success = handler.success;
-		}
-		if(handler.error) {
-			jRequest.error = handler.error;
-		}
-		if(handler.complete) {
-			jRequest.complete = handler.complete;
+		
+		if(handler) {
+			var type = typeof handler;
+			if(type != "object") {
+				throw $j.errors.serverGatewayError("The specified handler must be a valid JavaScript Object; " + type + " was found");
+			}
+			if(handler.success) {
+				jRequest.success = handler.success;
+			}
+			if(handler.error) {
+				jRequest.error = handler.error;
+			}
+			if(handler.complete) {
+				jRequest.complete = handler.complete;
+			}
 		}
 		jRequest.url = $j._serverGatewayURL;
 		jRequest.type = "POST";
@@ -454,7 +456,12 @@ var $j = {
 		var methods;
 		var methodNum;
 		
-		var paramsNum = params.length;
+		var paramsNum;
+		if(params) {
+			paramsNum = params.length;
+		} else {
+			paramsNum = 0;
+		}
 		var reqParamsNum;
 		
 		var classFound = false;
