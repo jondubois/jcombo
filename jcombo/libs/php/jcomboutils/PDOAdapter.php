@@ -28,6 +28,7 @@ class PDOAdapter {
 		$result = @$this->store->query($sql, PDO::FETCH_NUM);
 		if($result) {
 			foreach($result as $res) {
+				$res[0] = self::autocastString($res[0]);
 				array_push($list, $res[0]);
 			}
 		}
@@ -45,6 +46,9 @@ class PDOAdapter {
 		$result = @$this->store->query($sql, $resultType);
 		if($result) {
 			foreach($result as $res) {
+				foreach($res as &$r) {
+					$r = self::autocastString($r);
+				}
 				array_push($list, $res);
 			}
 		}
@@ -70,7 +74,7 @@ class PDOAdapter {
 		if(!$result) {
 			return false;
 		}
-		return $result->fetchColumn(0);
+		return self::autocastString($result->fetchColumn(0));
 	}
 	
 	/**
@@ -145,6 +149,19 @@ class PDOAdapter {
 	*/
 	public function lastInsertId() {
 		return $this->store->lastInsertId();
+	}
+	
+	private function autocastString($var) {
+		$bool = ($var === 'true' ? true : false);
+		$float = floatval($var);
+		
+		if($var === 'true' || $bool === 'false') {
+			return $bool;
+		} else if((string)$float === $var) {
+			return $float;
+		}
+		
+		return $var;
 	}
 }
 ?>
