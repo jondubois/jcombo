@@ -1,5 +1,5 @@
 /**
-	This script provides the core javascript functionality of JCombo.
+	This script provides the core javascript functionality of jCombo.
 */
 var $j = {
 	_appDirPath: null,
@@ -50,7 +50,7 @@ var $j = {
 	},
 	
 	/**
-		Get the URL of JCombo's root directory.
+		Get the URL of jCombo's root directory.
 	*/
 	getRootURL: function() {
 		return $j._frameworkURL;
@@ -65,7 +65,7 @@ var $j = {
 	
 	caching: {
 		/**
-			Enable/disable default caching for server interface AJAX calls performed by JCombo.
+			Enable/disable default caching for server interface AJAX calls performed by jCombo.
 			Server call caching is disabled by default.
 		*/
 		cacheServerCalls: function(bool) {
@@ -83,9 +83,7 @@ var $j = {
 	
 	/**
 		Grab allows you to include external scripts, CSS stylesheets and templates into your JavaScript.
-		Grab can be used through either a synchronous or asynchronous interface. The sync interface blocks the
-		browser while the resources are loaded, while the async interface allows you to load resources dynamically
-		at runtime. At present only templates can be loaded asynchronously.
+		Some grab methods allow you to load resources either synchronously or asynchronously.
 	*/
 	grab: {
 		_loadedScripts: new Object(),
@@ -93,7 +91,7 @@ var $j = {
 		_loadedTemplates: new Object(),
 		
 		/**
-			Include a script from the application script directory into the current script.
+			Include a script from the application's script directory into the current script.
 		*/
 		script: function(name) {
 			var resourceName = $j._appScriptsURL + name + '.js';
@@ -104,7 +102,7 @@ var $j = {
 		},
 		
 		/**
-			Include a script from JCombo's javascript library directory into the current script.
+			Include a script from jCombo's javascript library directory into the current script.
 		*/
 		lib: function(name) {
 			var resourceName = $j._jsLibsURL + name + '.js';
@@ -126,7 +124,7 @@ var $j = {
 		},
 		
 		/**
-			Include an application CSS stylesheet into the application.
+			Include an application CSS stylesheet (from the application directory) into the application.
 		*/
 		appCSS: function(name) {
 			var resourceName = $j._appStylesURL + name + '.css';
@@ -138,7 +136,7 @@ var $j = {
 		},
 		
 		/**
-			Include a default framework CSS stylesheet into the application.
+			Include a default framework CSS stylesheet (from the jcombo framework directory) into the application.
 		*/
 		frameworkCSS: function(name) {
 			var resourceName = $j._frameworkStylesURL + name + '.css';
@@ -325,7 +323,7 @@ var $j = {
 	serverInterfaceDescription: {},
 	
 	/*
-		The following methods are part of the core of JCombo.
+		The following methods are part of the core of jCombo.
 		Do not call these methods directly.
 	*/
 	sendRequest: function(jRequest) {
@@ -365,6 +363,15 @@ var $j = {
 		$.ajax(proxyRequest);
 	},
 	
+	/** 
+		Call a static PHP method from JavaScript - The call will be performed asynchronously and any returned value will be passed
+		to the handler object.
+		@param string className The name of the PHP class to invoke
+		@param string method The name of the static method of the specified class to call
+		@param array params An array of parameters to pass to the specified method
+		@param object handler A handler object that will handle the return value of the PHP method - 
+		The handler is an object which implements any of the following handler methods: success(data, textStatus, jqXHR), error(data, textStatus, jqXHR), complete(textStatus, jqXHR)
+	*/
 	acall: function(className, method, params, handler) {
 		$j.validateCall(className, method, params);
 		var jRequest = {};
@@ -389,9 +396,7 @@ var $j = {
 		jRequest.async = true;
 		jRequest.processData = true;
 		
-		if(!jRequest.cache){
-			jRequest.cache = $j._cacheSeverCalls;
-		}
+		jRequest.cache = $j._cacheSeverCalls;
 		
 		var args = new Array();
 		if(params) {
@@ -415,6 +420,13 @@ var $j = {
 		$j.sendRequest(jRequest);
 	},
 	
+	/** 
+		Call a static PHP method from JavaScript - The call will be performed synchronously and any returned value will be returned by this method.
+		@param string className The name of the PHP class to invoke
+		@param string method The name of the static method of the specified class to call
+		@param array params An array of parameters to pass to the specified method
+		@return mixed The value returned by the specified static PHP method. This could be any JSON-compatible type such as an object, array, string or number
+	*/
 	scall: function(className, method, params) {
 		$j.validateCall(className, method, params);
 	
