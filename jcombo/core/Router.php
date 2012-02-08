@@ -48,6 +48,7 @@ class Router {
 	public static function exec() {
 		self::requiresRouterInit();
 		
+		// $_SESSION['jcLoaded'] is set to true in jcloaded.php via Ajax once app is loaded
 		if(isset($_SESSION['jcLoaded'])) {
 			foreach(self::$cssFiles as $cssURL) {
 				self::embedCSS($cssURL);
@@ -121,8 +122,7 @@ class Router {
 			self::embedScript(PathManager::convertPathToURL($siScriptPath));	
 			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$fileURL.'");</script>';
 			self::$headCode .= "\n";
-		} else {
-			$_SESSION['jcLoaded'] = true;			
+		} else {		
 			$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
 			if(!file_exists($loaderPath)) {
 				$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";

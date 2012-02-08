@@ -1,4 +1,7 @@
 var $loader = {
+	IE: /*@cc_on!@*/false,
+	MAX_ATTEMPTS: 3,
+	
 	_loader: null,
 	_frameworkURL: null,
 	_loadedScripts: null,
@@ -12,6 +15,7 @@ var $loader = {
 	_allStylesheetsLoaded: null,
 	
 	_onLoadCallbacks: null,
+	_attempts: null,
 
 	setLoader: function(loader) {
 		$loader._loader = loader;
@@ -27,6 +31,7 @@ var $loader = {
 		$loader._allStylesheetsLoaded = false;
 		$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
 		$loader._onLoadCallbacks = [];
+		$loader._attempts = 0;
 	},
 	
 	_waitForReady: function() {
@@ -115,6 +120,57 @@ var $loader = {
 	},
 	
 	finish: function() {
-		location.href = location.href;
+		$loader._attempts++;
+		
+		var xmlhttp = $loader._getHTTPReqObject();
+		var jcLoadedScript = $loader._frameworkURL + "core/jcloaded.php";
+		if(xmlhttp) {
+			xmlhttp.open("GET", jcLoadedScript, false);
+			
+			xmlhttp.onreadystatechange = function() {
+				if(xmlhttp.readyState == 4) {
+					if(xmlhttp.status == 200) {
+						// Refresh Router. Now that the scripts in cache, Router will launch the app
+						location.href = location.href;
+					} else {
+						if($loader._attempts < $loader.MAX_ATTEMPTS) {
+							// try again
+							$loader.finish();
+						}
+					}
+				}
+			}
+			// set the jcLoaded session variable to true to inform Router that the app is loaded
+			 xmlhttp.send();
+			
+		} else {
+			throw "Could not instantiate XMLHttpRequest";
+		}
+	},
+	
+	_getHTTPReqObject: function() {
+		xmlhttp = null;
+		
+		if($loader.IE) {
+			try {
+				xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+			} catch (exceptionA) {
+				try {
+					xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+				} catch (exceptionB) {
+					xmlhttp = null;
+				}
+			}
+		}
+		
+		if (!xmlhttp && typeof XMLHttpRequest != 'undefined') {
+			try {
+				xmlhttp = new XMLHttpRequest();
+			} catch (e) {
+				xmlhttp = null;
+			}
+		}
+		
+		return xmlhttp;
 	}
 };
