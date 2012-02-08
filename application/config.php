@@ -33,6 +33,7 @@ define('JC_TEMPLATES_DIR', JC_APPLICATION_DIR.'templates/');
 define('JC_MAIN_SCRIPT', 'index');
 define('JC_NOT_FOUND_SCRIPT', 'notfound');
 define('JC_NOT_ACCESSIBLE_SCRIPT', 'notaccessible');
+define('JC_LOAD_SCRIPT', 'load');
 
 // define the JavaScript scripts directory URL
 define('JC_SCRIPTS_URL', PathManager::convertPathToURL(JC_SCRIPTS_DIR));

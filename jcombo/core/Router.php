@@ -6,7 +6,10 @@ class Router {
 	private static $scripts;
 	private static $serverInterfaces;
 	private static $logErrors = true;
+	private static $jsFiles;
+	private static $cssFiles;
 	private static $error = false;
+	private static $headCode = '';
 	
 	private static $applicationDirPath;
 	
@@ -16,9 +19,13 @@ class Router {
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
 	public static function init($applicationDirPath, $logErrors=true) {
+		session_start();
+		ob_start(array('Router', 'outputBuffer'));
+		
 		self::$error = false;
 		self::$logErrors = $logErrors;
 		self::$applicationDirPath = self::cleanFormatDirPath(realpath($applicationDirPath));
+		
 		require_once(self::$applicationDirPath.'config.php');
 		
 		register_shutdown_function(array('Router', 'handleShutdown'));
@@ -28,9 +35,11 @@ class Router {
 		self::$scripts = array();
 		self::$serverInterfaces = array();
 		
+		self::$jsFiles = array();
+		self::$cssFiles = array();
+		
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
-		self::embedScript(JC_FRAMEWORK_URL.'jcombo.js');
 	}
 	
 	/**
@@ -38,69 +47,96 @@ class Router {
 	*/
 	public static function exec() {
 		self::requiresRouterInit();
-		$siScriptPath = JC_APPDATA_DIR.'serverinterfaces.js';
+		
+		if(isset($_SESSION['jcLoaded'])) {
+			foreach(self::$cssFiles as $cssURL) {
+				self::embedCSS($cssURL);
+			}
+		
+			foreach(self::$jsFiles as $scriptURL) {
+				self::embedScript($scriptURL);
+			}
 			
-		$defaultFile = JC_MAIN_SCRIPT;
-		$notFoundFile = JC_NOT_FOUND_SCRIPT;
-		$notAccessibleFile = JC_NOT_ACCESSIBLE_SCRIPT;
-		
-		$useScriptFile = $defaultFile;
-		
-		if(preg_match_all('/(?<=[?&])[^?&]+/', $_SERVER['REQUEST_URI'], $matches, PREG_PATTERN_ORDER, 0)) {
-			foreach($matches[0] as $match) {
-				if(strpos($match, '=', 0) === false) {
-					$useScriptFile = $match;
-					break;
-				} else if(preg_match('/^(.+)=true$/', $match, $mat)) {
-					$useScriptFile = $mat[1];
-					break;
+			self::embedScript(JC_FRAMEWORK_URL.'jcombo.js');
+			
+			$siScriptPath = JC_APPDATA_DIR.'serverinterfaces.js';
+				
+			$defaultFile = JC_MAIN_SCRIPT;
+			$notFoundFile = JC_NOT_FOUND_SCRIPT;
+			$notAccessibleFile = JC_NOT_ACCESSIBLE_SCRIPT;
+			
+			$useScriptFile = $defaultFile;
+			
+			if(preg_match_all('/(?<=[?&])[^?&]+/', $_SERVER['REQUEST_URI'], $matches, PREG_PATTERN_ORDER, 0)) {
+				foreach($matches[0] as $match) {
+					if(strpos($match, '=', 0) === false) {
+						$useScriptFile = $match;
+						break;
+					} else if(preg_match('/^(.+)=true$/', $match, $mat)) {
+						$useScriptFile = $mat[1];
+						break;
+					}
 				}
 			}
-		}
-		
-		$useScriptFile = preg_replace('/[\/?]+$/', '/'.$defaultFile, $useScriptFile);
-		
-		$filePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-		if(!file_exists($filePath)) {
-			$useScriptFile = $notFoundFile;
-			$notFoundPath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-			if(file_exists($notFoundPath)) {
-				$filePath = $notFoundPath;
-			} else {
-				$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
+			
+			$useScriptFile = preg_replace('/[\/?]+$/', '/'.$defaultFile, $useScriptFile);
+			
+			$filePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+			if(!file_exists($filePath)) {
+				$useScriptFile = $notFoundFile;
+				$notFoundPath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+				if(file_exists($notFoundPath)) {
+					$filePath = $notFoundPath;
+				} else {
+					$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
+				}
+			} else if(!in_array($useScriptFile, self::$scripts)) {
+				$useScriptFile = $notAccessibleFile;
+				$notAccessiblePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+				if(file_exists($notAccessiblePath)) {
+					$filePath = $notAccessiblePath;
+				} else {
+					$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
+				}
 			}
-		} else if(!in_array($useScriptFile, self::$scripts)) {
-			$useScriptFile = $notAccessibleFile;
-			$notAccessiblePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-			if(file_exists($notAccessiblePath)) {
-				$filePath = $notAccessiblePath;
-			} else {
-				$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
-			}
-		}
-	
-		$fileURL = PathManager::convertPathToURL($filePath);
 		
-		$initCode = '$j.init("'.self::$applicationDirPath.'", "'.JC_FRAMEWORK_URL.'", "'.JC_LIB_JS_URL.'", "'.JC_FRAMEWORK_STYLES_URL.'", "'.JC_SERVER_GATEWAY_URL.'", "'.JC_SCRIPTS_URL.'", "'.JC_STYLES_URL.
-				'", "'.JC_TEMPLATES_URL.'", "'.JC_ASSETS_URL.'", "'.JC_FILES_URL.'");';
-		
-		$interfaceDesc = '$j.serverInterfaceDescription = '.ServerInterfaceDescriptor::getInterfaceDesc().';';
-		$storedInterfaceDesc = '';
-		
-		if(file_exists($siScriptPath)) {
-			$storedInterfaceDesc = file_get_contents($siScriptPath);
-		} else {
+			$fileURL = PathManager::convertPathToURL($filePath);
+			
+			$initCode = '$j.init("'.self::$applicationDirPath.'", "'.JC_FRAMEWORK_URL.'", "'.JC_LIB_JS_URL.'", "'.JC_FRAMEWORK_STYLES_URL.'", "'.JC_SERVER_GATEWAY_URL.'", "'.JC_SCRIPTS_URL.'", "'.JC_STYLES_URL.
+					'", "'.JC_TEMPLATES_URL.'", "'.JC_ASSETS_URL.'", "'.JC_FILES_URL.'");';
+			
+			$interfaceDesc = '$j.serverInterfaceDescription = '.ServerInterfaceDescriptor::getInterfaceDesc().';';
 			$storedInterfaceDesc = '';
+			
+			if(file_exists($siScriptPath)) {
+				$storedInterfaceDesc = file_get_contents($siScriptPath);
+			} else {
+				$storedInterfaceDesc = '';
+			}
+			
+			if($storedInterfaceDesc != $interfaceDesc) {
+				file_put_contents($siScriptPath, $interfaceDesc, LOCK_EX);
+			}
+			
+			self::embedScript(PathManager::convertPathToURL($siScriptPath));	
+			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$fileURL.'");</script>';
+			self::$headCode .= "\n";
+		} else {
+			$_SESSION['jcLoaded'] = true;			
+			$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
+			if(!file_exists($loaderPath)) {
+				$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";
+			}
+			
+			$scriptsToLoad = str_replace('\/', '/', json_encode(self::$jsFiles));
+			$stylesToLoad = str_replace('\/', '/', json_encode(self::$cssFiles));
+			
+			self::embedScript(JC_FRAMEWORK_URL.'loader.js');
+			self::embedScript(PathManager::convertPathToURL($loaderPath));
+			
+			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$scriptsToLoad.', '.$stylesToLoad.')</script>';
+			self::$headCode .= "\n";
 		}
-		
-		if($storedInterfaceDesc != $interfaceDesc) {
-			file_put_contents($siScriptPath, $interfaceDesc, LOCK_EX);
-		}
-		
-		echo '<script type="text/javascript" src="'.PathManager::convertPathToURL($siScriptPath).'"></script>';
-		echo "\n";		
-		echo '<script type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$fileURL.'");</script>';
-		echo "\n";
 	}
 	
 	/*
@@ -129,6 +165,23 @@ class Router {
 			} else {
 				throw new Exception('System could not read '.$includesFileName.' in the libs/js/ directory');	
 			}
+		}
+	}
+	
+	/**
+	* Include a JavaScript library file from the framework/libs/js/ directory.
+	* @param string $lib The name of the library to include. This could be a single library file or an entire directory of files (using /*). The path is relative to the JC_LIB_JS_DIR directory.
+	* @throws Throws an exception if the specified JavaScript library cannot be found.
+	*/
+	public static function includeLibJS($lib) {
+		$libs = glob(JC_LIB_JS_DIR.$lib.'.js');
+		
+		if(count($libs) < 1) {
+			throw new Exception('System could not load the JS library "'.$lib.'" - Include path may have been specified incorrectly');	
+		}
+		
+		foreach($libs as $scriptPath) {
+			self::$jsFiles[] = PathManager::convertPathToURL($scriptPath);
 		}
 	}
 	
@@ -268,23 +321,6 @@ class Router {
 	}
 	
 	/**
-	* Include a JavaScript library file from the framework/libs/js/ directory.
-	* @param string $lib The name of the library to include. This could be a single library file or an entire directory of files (using /*). The path is relative to the JC_LIB_JS_DIR directory.
-	* @throws Throws an exception if the specified JavaScript library cannot be found.
-	*/
-	public static function includeLibJS($lib) {
-		$libs = glob(JC_LIB_JS_DIR.$lib.'.js');
-		
-		if(count($libs) < 1) {
-			throw new Exception('System could not load the JS library "'.$lib.'" - Include path may have been specified incorrectly');	
-		}
-		
-		foreach($libs as $scriptPath) {
-			self::embedScript($scriptPath);
-		}
-	}
-	
-	/**
 	* Include a CSS stylesheet from the framework/styles/ or application/styles/ directory.
 	* If there is a file with the same name in both directories, the file in the application/styles/ directory will be used.
 	* @param string $cssName The path of the CSS file to include relative to the JC_STYLES_DIR directory.
@@ -302,8 +338,7 @@ class Router {
 		} else {
 			throw new Exception('The CSS stylesheet "'.$cssName.'" does not exist');	
 		}
-		$cssURL = PathManager::convertPathToURL($cssPath);
-		echo "<link rel=\"stylesheet\" type=\"text/css\" href=\"$cssURL\" />\n";
+		self::$cssFiles[] = PathManager::convertPathToURL($cssPath);
 	}
 	
 	/*
@@ -316,7 +351,7 @@ class Router {
 		if(!file_exists($scriptPath)) {
 			throw new Exception('The script "'.$scriptPath.'" does not exist');
 		}
-		self::embedScript($scriptPath);
+		self::$jsFiles[] = PathManager::convertPathToURL($scriptPath);
 	}
 	
 	/**
@@ -331,10 +366,18 @@ class Router {
 	/*
 	* Mostly used internally to embed a script at from the specified path.
 	*/
-    public static function embedScript($scriptPath) {
-		$scriptURL = PathManager::convertPathToURL($scriptPath);
-		echo "<script type=\"text/javascript\" src=\"$scriptURL\"></script>\n";
+    public static function embedScript($scriptURL, $id=null) {
+		$idAttr = '';
+		if(isset($id) && $id) {
+			$idAttr = 'id="'.$id.'" ';
+		}
+		
+		self::$headCode .= "<script ".$idAttr."type=\"text/javascript\" src=\"$scriptURL\"></script>\n";
     }
+	
+	public static function embedCSS($cssURL) {
+		self::$headCode .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$cssURL\" />\n";
+	}
 	
 	public static function compileExceptionMessage($exception) {
 		return '['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine();
@@ -383,7 +426,7 @@ class Router {
 	public static function handleError($errno, $errstr, $errfile, $errline) {
 		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
 		$errorType = self::errorNumberToString($errno);
-		echo "[$errorType] $errstr in $errfile on line $errline";
+		self::$headCode .= "[$errorType] $errstr in $errfile on line $errline";
 		exit;
 	}
 	
@@ -393,7 +436,7 @@ class Router {
 		$errline = $e->getLine();
 		
 		self::$error = array('type'=>'', 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		echo "[Exception] $errstr in $errfile on line $errline";
+		self::$headCode .= "[Exception] $errstr in $errfile on line $errline";
 		exit;
 	}
 	
@@ -414,6 +457,15 @@ class Router {
 		if(!isset(self::$applicationDirPath)) {
 			throw new Exception("This method cannot be called before the router has been initialized");
 		}
+	}
+	
+	public static function outputBuffer($buffer) {
+		$head = '</head>';
+		$pos = strpos($buffer, $head);
+		if($pos !== false) {
+			$buffer = substr_replace($buffer, self::$headCode.'</head>', $pos, strlen($head));
+		}
+		return $buffer;
 	}
 }
 

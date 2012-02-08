@@ -4,8 +4,6 @@
 * used throughout most of your application - These will be available throughout all server interface classes.
 */
 
-session_start();
-
 Router::includeLibPHP('jcomboutils/*');
 
 ?>

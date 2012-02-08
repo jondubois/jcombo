@@ -300,11 +300,13 @@ var $j = {
 			The id parameter is optional.
 		*/
 		scriptTag: function(url, type, id) {
-			var idAttr = '';
+			var script = $(document.createElement('script'));
 			if(id) {
-				idAttr = 'id="' + id + '" ';
+				script.attr('id', id);
 			}
-			document.write('<script ' + idAttr + 'type="' + type + '" src="' + url + '"></script>');
+			script.attr({'type': type, 'src': url});
+			
+			$('#jComboInitScript').before(script);	
 		},
 		
 		/** 
@@ -312,11 +314,13 @@ var $j = {
 			The id parameter is optional.
 		*/
 		linkTag: function(url, type, rel, id) {
-			var idAttr = '';
+			var link = $(document.createElement('script'));
 			if(id) {
-				idAttr = 'id="' + id + '" ';
+				link.attr('id', id);
 			}
-			document.write('<link ' + idAttr + 'rel="' + rel + '" type="' + type + '" href="' + url + '" />');	
+			link.attr({'rel': rel, 'type': type, 'href': url});
+			
+			$('head').prepend(link);
 		}
 	},
 	
