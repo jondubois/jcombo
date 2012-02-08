@@ -134,7 +134,7 @@ class Router {
 			self::embedScript(JC_FRAMEWORK_URL.'loader.js');
 			self::embedScript(PathManager::convertPathToURL($loaderPath));
 			
-			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$scriptsToLoad.', '.$stylesToLoad.')</script>';
+			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$scriptsToLoad.', '.$stylesToLoad.');</script>';
 			self::$headCode .= "\n";
 		}
 	}

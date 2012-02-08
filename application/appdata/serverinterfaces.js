@@ -1,1 +1,1 @@
-$j.serverInterfaceDescription = [];
+$j.serverInterfaceDescription = [{"className":"Test","methods":[{"methodName":"tes","requiredParams":[]}]}];

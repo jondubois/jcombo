@@ -1,2 +1,4 @@
 [8 February 2012, 2:27:27am] [Notice] A session had already been started - ignoring session_start() in C:\wamp\www\jcombo\jcombo\core\Router.php on line 22
 [8 February 2012, 2:27:30am] [Notice] A session had already been started - ignoring session_start() in C:\wamp\www\jcombo\jcombo\core\Router.php on line 22
+[8 February 2012, 7:15:40am] [Error] Constructor Test::test() cannot be static in C:\wamp\www\jcombo\application\interfaces\Test.php on line 6
+[8 February 2012, 7:15:41am] [Error] Constructor Test::test() cannot be static in C:\wamp\www\jcombo\application\interfaces\Test.php on line 6

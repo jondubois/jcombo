@@ -14,7 +14,7 @@ var Load = {
 	_browser: null,
 	_imgLoaded: false,
     
-	start: function(frameworkURL, scripts, stylesheets) {		
+	start: function(frameworkURL, scripts, stylesheets) {
 		Load._frameworkURL = frameworkURL;
 		Load._loaderAnimText = [];
 		Load._browser = navigator.appName;
@@ -22,7 +22,7 @@ var Load = {
 		var imgURL = Load._frameworkURL + 'assets/logo.png';
 		var textAnim = ['Loading jCombo App', 'Loading jCombo App.', 'Loading jCombo App..', 
 				'Loading jCombo App...', 'Loading jCombo App..', 'Loading jCombo App.'];
-				
+			
 		Load._load(imgURL, 'jCombo', 'http://jcombo.com/', textAnim);
 	},
 	
@@ -50,6 +50,7 @@ var Load = {
 		linkEl.setAttribute('target', '_blank');
 		
 		var imgEl = document.createElement('img');
+		imgEl.setAttribute('border', '0px');
 		imgEl.setAttribute('src', loadImageURL);
 		imgEl.setAttribute('alt', loadImageCaption);
 		
@@ -78,17 +79,18 @@ var Load = {
 		if(Load._loader) {
 			document.body.appendChild(Load._loader);
 			
-			var loadWidth = parseInt(Load.getStyle(Load._loader, 'width'));
-			var loadHeight = parseInt(Load.getStyle(Load._loader, 'height'));
+			var loadWidth = Load._loader.offsetWidth;
+			var loadHeight = Load._loader.offsetHeight;
 			
 			Load._loader.style.top = (Load.getWindowHeight() - loadHeight)/2 + 'px';
+			
 			Load._loader.style.left = (Load.getWindowWidth() - loadWidth)/2 + 'px';
 			Load._loader.style.visibility = 'visible';
 			
 			window.onresize = function() {
 				if(Load._loader) {
-					loadWidth = parseInt(Load.getStyle(Load._loader, 'width'));
-					loadHeight = parseInt(Load.getStyle(Load._loader, 'height'));
+					loadWidth = Load._loader.offsetWidth;
+					loadHeight = Load._loader.offsetHeight;
 				
 					Load._loader.style.top = (Load.getWindowHeight() - loadHeight)/2 + 'px';
 					Load._loader.style.left = (Load.getWindowWidth() - loadWidth)/2 + 'px';
@@ -125,14 +127,6 @@ var Load = {
 		if(document.body && Load._loader.parentNode == document.body && Load._loader) {
 			document.body.removeChild(Load._loader);
 			Load._loader = null;
-		}
-	},
-	
-	getStyle: function(domElement, property) {
-		if(domElement.currentStyle) {
-			return domElement.currentStyle[property]	
-		} else {
-			return window.getComputedStyle(domElement, "").getPropertyValue(property);
 		}
 	},
 	

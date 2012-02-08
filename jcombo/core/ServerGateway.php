@@ -39,12 +39,12 @@ class ServerGateway {
 	public static function execRequest($requestJSON) {		
 		self::$error = false;
 		self::$request = json_decode($requestJSON);
-		if(!isset(self::$request->class)) {
+		if(!isset(self::$request->className)) {
 			self::$request = json_decode(stripslashes($requestJSON));
 		}
 		
-		if(!isset(self::$request->class)) {
-			if(preg_match('/(?<="class":")[^"]*/', $requestJSON, $classMatch) && 
+		if(!isset(self::$request->className)) {
+			if(preg_match('/(?<="className":")[^"]*/', $requestJSON, $classMatch) && 
 					preg_match('/(?<="method":")[^"]*/', $requestJSON, $methodMatch)) {
 				throw new IncorrectParamsException($classMatch[0], $methodMatch[0]);
 			} else {
@@ -52,23 +52,23 @@ class ServerGateway {
 			}
 		}
 		
-		$classFile = JC_INTERFACES_DIR.self::$request->class.'.php';
+		$classFile = JC_INTERFACES_DIR.self::$request->className.'.php';
 		
 		if(file_exists($classFile)) {
 			include_once($classFile);
 		} else {
-			throw new ClassNotFoundException(self::$request->class);	
+			throw new ClassNotFoundException(self::$request->className);	
 		}
 		
-		if(!is_callable(array(self::$request->class, self::$request->method))) {
-			throw new InvalidMethodException(self::$request->class, self::$request->method);
+		if(!is_callable(array(self::$request->className, self::$request->method))) {
+			throw new InvalidMethodException(self::$request->className, self::$request->method);
 		}
 		
-		$reflectMethod = new ReflectionMethod(self::$request->class, self::$request->method);
+		$reflectMethod = new ReflectionMethod(self::$request->className, self::$request->method);
 		$reqNumParams = $reflectMethod->getNumberOfRequiredParameters();
 		
 		if(count(self::$request->params) < $reqNumParams) {
-			throw new IncorrectParamsException(self::$request->class, self::$request->method);
+			throw new IncorrectParamsException(self::$request->className, self::$request->method);
 		}
 		
 		$args = array();
@@ -77,7 +77,7 @@ class ServerGateway {
 			$args[] = 'self::$request->params['.$i++.']';	
 		}
 		
-		$result = @eval('return '.self::$request->class.'::'.self::$request->method.'('.implode(',', $args).');');
+		$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
 
 		self::respond($result);
 	}

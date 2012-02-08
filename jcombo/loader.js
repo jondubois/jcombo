@@ -35,7 +35,9 @@ var $loader = {
 	},
 	
 	_waitForReady: function() {
-		if(document.head && document.body) {
+		var head = document.getElementsByTagName('head')[0];
+		
+		if(head && document.body) {
 			clearInterval($loader._waitForReadyInterval);
 			$loader._startLoading();
 		}
@@ -46,6 +48,8 @@ var $loader = {
 	},
 	
 	loadJS: function(url, id, callback) {
+		var head = document.getElementsByTagName('head')[0];
+		
 		var script = document.createElement('script');
 		if(id) {
 			script.id = id;
@@ -58,10 +62,12 @@ var $loader = {
 			callback();
 		}
 		
-		document.head.appendChild(script);
+		head.appendChild(script);
 	},
 	
 	loadCSS: function(url, id, callback) {
+		var head = document.getElementsByTagName('head')[0];
+		
 		var link = document.createElement('link');
 		if(id) {
 			link.id = id;
@@ -75,7 +81,7 @@ var $loader = {
 			callback();
 		}
 		
-		document.head.appendChild(link);
+		head.appendChild(link);
 	},
 	
 	loadAllJS: function() {

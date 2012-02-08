@@ -78,7 +78,7 @@ var $j = {
 		*/
 		cacheTemplates: function(bool) {
 			$j._cacheTemplates = bool;
-		},
+		}
 	},
 	
 	/**
@@ -236,7 +236,7 @@ var $j = {
 									$j.grab._loadedTemplates[resourceName] = null;
 								}
 							}
-						},
+						}
 					};
 					$.ajax(settings);
 					
@@ -285,8 +285,7 @@ var $j = {
 							});
 							$j.grab._loadedTemplates[resourceName] = null;
 							throw $j.errors.loadTemplateError(errorThrown);
-						},
-						
+						}
 					};
 					$.ajax(settings);
 				}
@@ -414,7 +413,7 @@ var $j = {
 		}
 		
 		var request = {
-			class: className,
+			className: className,
 			method: method,
 			params: args
 		};
@@ -456,7 +455,7 @@ var $j = {
 		}
 		
 		var request = {
-			class: className,
+			className: className,
 			method: method,
 			params: args
 		};
