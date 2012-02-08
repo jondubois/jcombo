@@ -55,7 +55,7 @@ var Load = {
 		imgEl.setAttribute('alt', loadImageCaption);
 		
 		Load._loaderTextBox = document.createElement('div');
-		Load._loaderTextBox.style.marginTop = '2px';
+		Load._loaderTextBox.style.marginTop = '4px';
 		Load._loaderTextBox.style.fontSize = '12px';
 		Load._loaderTextBox.style.color = '#666';
 		Load._loaderTextBox.style.width = '100%';
