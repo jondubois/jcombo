@@ -84,20 +84,25 @@ var $loader = {
 		head.appendChild(link);
 	},
 	
-	loadAllJS: function() {
+	_loadAllCSS: function() {
+		if($loader._loadedStylesheets.length < $loader._stylesheets.length) {
+			$loader.loadCSS($loader._stylesheets[$loader._loadedStylesheets.length], null, $loader._loadAllCSS);
+		} else {
+			$loader._onCSSLoaded();
+		}
+	},
+	
+	_loadAllJS: function() {
 		if($loader._loadedScripts.length < $loader._scripts.length) {
-			$loader.loadJS($loader._scripts[$loader._loadedScripts.length], null, $loader.loadAllJS);
+			$loader.loadJS($loader._scripts[$loader._loadedScripts.length], null, $loader._loadAllJS);
 		} else {
 			$loader._onScriptsLoaded();
 		}
 	},
 	
-	loadAllCSS: function() {
-		if($loader._loadedStylesheets.length < $loader._stylesheets.length) {
-			$loader.loadJS($loader._stylesheets[$loader._loadedStylesheets.length], null, $loader.loadAllCSS);
-		} else {
-			$loader._onCSSLoaded();
-		}
+	loadAll: function() {
+		$loader._loadAllCSS();
+		$loader._loadAllJS();
 	},
 	
 	_onScriptsLoaded: function() {
@@ -125,13 +130,11 @@ var $loader = {
 		$loader._onLoadCallbacks.push(callback);
 	},
 	
-	finish: function() {
-		$loader._attempts++;
-		
+	finish: function() {		
 		var xmlhttp = $loader._getHTTPReqObject();
 		var jcLoadedScript = $loader._frameworkURL + "core/jcloaded.php";
 		if(xmlhttp) {
-			xmlhttp.open("GET", jcLoadedScript, false);
+			xmlhttp.open("GET", jcLoadedScript, true);
 			
 			xmlhttp.onreadystatechange = function() {
 				if(xmlhttp.readyState == 4) {
@@ -139,7 +142,7 @@ var $loader = {
 						// Refresh Router. Now that the scripts in cache, Router will launch the app
 						location.href = location.href;
 					} else {
-						if($loader._attempts < $loader.MAX_ATTEMPTS) {
+						if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
 							// try again
 							$loader.finish();
 						}

@@ -10,6 +10,7 @@ class Router {
 	private static $cssFiles;
 	private static $error = false;
 	private static $headCode = '';
+	private static $bodyCode = '';
 	
 	private static $applicationDirPath;
 	
@@ -25,6 +26,9 @@ class Router {
 		self::$error = false;
 		self::$logErrors = $logErrors;
 		self::$applicationDirPath = self::cleanFormatDirPath(realpath($applicationDirPath));
+		
+		self::$headCode = '';
+		self::$bodyCode = '';
 		
 		require_once(self::$applicationDirPath.'config.php');
 		
@@ -48,8 +52,14 @@ class Router {
 	public static function exec() {
 		self::requiresRouterInit();
 		
+		$unchanged = false;
+		if(isset($_SESSION['loadedFiles'])) {
+			$unchanged = self::isSubset($_SESSION['loadedFiles']['js'], self::$jsFiles) && 
+					self::isSubset($_SESSION['loadedFiles']['css'], self::$cssFiles);
+		}
+		
 		// $_SESSION['jcLoaded'] is set to true in jcloaded.php via Ajax once app is loaded
-		if(isset($_SESSION['jcLoaded'])) {
+		if(isset($_SESSION['jcLoaded']) && $unchanged) {
 			foreach(self::$cssFiles as $cssURL) {
 				self::embedCSS($cssURL);
 			}
@@ -122,19 +132,22 @@ class Router {
 			self::embedScript(PathManager::convertPathToURL($siScriptPath));	
 			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$fileURL.'");</script>';
 			self::$headCode .= "\n";
-		} else {		
+		} else {
 			$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
 			if(!file_exists($loaderPath)) {
 				$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";
 			}
 			
-			$scriptsToLoad = str_replace('\/', '/', json_encode(self::$jsFiles));
-			$stylesToLoad = str_replace('\/', '/', json_encode(self::$cssFiles));
+			$embedScripts = str_replace('\/', '/', json_encode(self::$jsFiles));
+			$embedStyles = str_replace('\/', '/', json_encode(self::$cssFiles));
+			
+			// this is to keep track of changes made to code in the middle a user's session
+			$_SESSION['loadedFiles'] = array('js'=>self::$jsFiles, 'css'=>self::$cssFiles);
 			
 			self::embedScript(JC_FRAMEWORK_URL.'loader.js');
 			self::embedScript(PathManager::convertPathToURL($loaderPath));
 			
-			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$scriptsToLoad.', '.$stylesToLoad.');</script>';
+			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$embedScripts.', '.$embedStyles.');</script>';
 			self::$headCode .= "\n";
 		}
 	}
@@ -418,16 +431,16 @@ class Router {
 	* @param string $error The error message to append to the error log.
 	*/
 	public static function reportError($error) {
+		$errorType = self::errorNumberToString($error['type']);
+		$errorMessage = $error['message'];
+		$errorFile = $error['file'];
+		$errorLine = $error['line'];
+		
+		$errorMessage = "[$errorType] $errorMessage in $errorFile on line $errorLine\r\n";
+		self::$bodyCode .= $errorMessage;
 		if(self::$logErrors) {
-			file_put_contents(JC_APPDATA_DIR.'errors.txt', '['.date("j F Y, g:i:sa").'] ['.self::errorNumberToString($error['type']).'] '.$error['message'].' in '.$error['file'].' on line '.$error['line']."\r\n", FILE_APPEND);
+			file_put_contents(JC_APPDATA_DIR.'errors.txt', '['.date("j F Y, g:i:sa").'] '.$errorMessage, FILE_APPEND);
 		}
-	}
-	
-	public static function handleError($errno, $errstr, $errfile, $errline) {
-		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		$errorType = self::errorNumberToString($errno);
-		self::$headCode .= "[$errorType] $errstr in $errfile on line $errline";
-		exit;
 	}
 	
 	public static function handleException($e) {
@@ -436,7 +449,12 @@ class Router {
 		$errline = $e->getLine();
 		
 		self::$error = array('type'=>'', 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		self::$headCode .= "[Exception] $errstr in $errfile on line $errline";
+		exit;
+	}
+	
+	public static function handleError($errno, $errstr, $errfile, $errline) {
+		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
+		$errorType = self::errorNumberToString($errno);
 		exit;
 	}
 	
@@ -449,7 +467,9 @@ class Router {
 		}
 		
 		if(isset($error)) {
+			ob_clean();
 			self::reportError($error);
+			echo self::getErrorTempalte();
 		}
 	}
 	
@@ -465,7 +485,36 @@ class Router {
 		if($pos !== false) {
 			$buffer = substr_replace($buffer, self::$headCode.'</head>', $pos, strlen($head));
 		}
+		
+		if(self::$bodyCode) {
+			$body = '<body>';
+			$pos = strpos($buffer, $body);
+			if($pos !== false) {
+				$buffer = substr_replace($buffer, '<body>'.self::$bodyCode, $pos, strlen($body));
+			}
+		}
+		
 		return $buffer;
+	}
+	
+	private static function isSubset($array, $sub) {
+		$keys = array();
+		foreach($array as $value) {
+			$keys[$value] = true;
+		}
+		
+		foreach($sub as $value) {
+			if(!array_key_exists($value, $keys)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private function getErrorTempalte() {
+		$html = "<!DOCTYPE html><head><title>jCombo Server Error</title></head><body></body>";
+		return $html;
 	}
 }
 

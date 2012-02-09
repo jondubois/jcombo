@@ -82,6 +82,11 @@ class ServerGateway {
 		self::respond($result);
 	}
 	
+	public static function handleException($e) {
+		self::$error = array('type'=>'', 'message'=>$e->getMessage(), 'file'=>$e->getFile(), 'line'=>$e->getLine());
+		self::respondException($e);
+	}
+	
 	/*
 		Sends back a ProgramCrashError error response to the client.
 		A ProgramCrashError is an error that occurred on the serverside due to an issue with a PHP script.
@@ -89,11 +94,6 @@ class ServerGateway {
 	public static function handleError($errno, $errstr, $errfile, $errline) {
 		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
 		self::respondException(new ProgramCrashError($errno, $errstr, $errfile, $errline));
-	}
-	
-	public static function handleException($e) {
-		self::$error = array('type'=>'', 'message'=>$e->getMessage(), 'file'=>$e->getFile(), 'line'=>$e->getLine());
-		self::respondException($e);
 	}
 	
 	public static function handleShutdown() {
