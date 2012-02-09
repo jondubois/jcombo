@@ -15,6 +15,8 @@ var $j = {
 	_appTemplatesURL: null,
 	_cacheSeverCalls: false,
 	_cacheTemplates: true,
+	_isWindowLoaded: null,
+	_readyCallbacks: null,
     
 	init: function(appDirPath, frameworkURL, jsLibsURL, frameworkStylesURL, serverGatewayURL, appScriptsURL, appStylesURL, appTemplatesURL, appAssetsURL, appFilesURL) {
 		$j._appDirPath = appDirPath;
@@ -28,6 +30,42 @@ var $j = {
 		$j._appTemplatesURL = appTemplatesURL;
 		$j._appAssetsURL = appAssetsURL;
 		$j._appFilesURL = appFilesURL;
+		$j._readyCallbacks = [];
+		$j._isWindowLoaded = false;
+		
+		$(window).load(function() {
+			$j._isWindowLoaded = true;
+			if($j._readyCallbacks.length > 0 && !$j.grab.isLoading()) {
+				$j._execReadyCallbacks();
+			}
+		});
+	},
+	
+	/**
+		Bind a callback function to jCombo's ready event. The specified function will be called when jCombo is ready to begin processing.
+	*/
+	ready: function(callback) {
+		if($j._isWindowLoaded && !$j.grab.isLoading()) {
+			callback();
+		} else {
+			$j._readyCallbacks.push(callback);
+		}
+	},
+	
+	_triggerReady: function() {
+		if($j._isWindowLoaded && $j._readyCallbacks.length > 0) {
+			$j._execReadyCallbacks();
+		}
+	},
+	
+	_execReadyCallbacks: function() {
+		var len = $j._readyCallbacks.length;
+		var i;
+		for(i=0; i<len; i++) {
+			$j._readyCallbacks[i]();
+		}
+		
+		$j._readyCallbacks = [];
 	},
 	
 	/**
@@ -358,6 +396,10 @@ var $j = {
 			}			
 		},
 		
+		isLoading: function() {
+			return $j.grab._loadedResources.length < $j.grab._resources.length;
+		},
+		
 		_loadResourceToCache: function(url, callback) {
 			$j.grab._resources.push(url);
 			$.ajax({
@@ -367,6 +409,10 @@ var $j = {
 				success: function() {
 					$j.grab._loadedResources.push(url);
 					callback();
+					
+					if(!$j.grab.isLoading()) {
+						$j._triggerReady();
+					}
 				},
 				error: function() {throw $j.errors.loadError(url);}
 			});
