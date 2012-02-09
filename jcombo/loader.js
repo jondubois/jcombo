@@ -47,25 +47,7 @@ var $loader = {
 		$loader._loader.start($loader._frameworkURL, $loader._scripts, $loader._stylesheets);
 	},
 	
-	loadJS: function(url, id, callback) {
-		var head = document.getElementsByTagName('head')[0];
-		
-		var script = document.createElement('script');
-		if(id) {
-			script.id = id;
-		}
-		script.type = "text/javascript";
-		script.src = url;
-		
-		script.onload = function() {
-			$loader._loadedScripts.push(url);
-			callback();
-		}
-		
-		head.appendChild(script);
-	},
-	
-	loadCSS: function(url, id, callback) {
+	loadCSS: function(url, id) {
 		var head = document.getElementsByTagName('head')[0];
 		
 		var link = document.createElement('link');
@@ -76,19 +58,36 @@ var $loader = {
 		link.type = "text/css";
 		link.href = url;
 		
-		link.onload = function() {
-			$loader._loadedStylesheets.push(url);
-			callback();
+		if(head.firstChild) {
+			head.insertBefore(link, head.firstChild);
+		} else {
+			head.appendChild(link);
+		}
+	},
+	
+	loadJS: function(url, id, callback) {
+		var head = document.getElementsByTagName('head')[0];
+		
+		var script = document.createElement('script');
+		if(id) {
+			script.id = id;
+		}
+		script.type = "text/javascript";
+		script.src = url;
+		
+		script.onload = function(e) {
+			$loader._loadedScripts.push(url);
+			callback(e);
 		}
 		
-		head.appendChild(link);
+		head.appendChild(script);
 	},
 	
 	_loadAllCSS: function() {
-		if($loader._loadedStylesheets.length < $loader._stylesheets.length) {
-			$loader.loadCSS($loader._stylesheets[$loader._loadedStylesheets.length], null, $loader._loadAllCSS);
-		} else {
-			$loader._onCSSLoaded();
+		var len = $loader._stylesheets.length;
+		var i;
+		for(i=0; i<len; i++) {
+			$loader.loadCSS($loader._stylesheets[i]);
 		}
 	},
 	
@@ -96,25 +95,13 @@ var $loader = {
 		if($loader._loadedScripts.length < $loader._scripts.length) {
 			$loader.loadJS($loader._scripts[$loader._loadedScripts.length], null, $loader._loadAllJS);
 		} else {
-			$loader._onScriptsLoaded();
+			$loader._loaded();
 		}
 	},
 	
 	loadAll: function() {
 		$loader._loadAllCSS();
 		$loader._loadAllJS();
-	},
-	
-	_onScriptsLoaded: function() {
-		if($loader._loadedStylesheets.length >= $loader._stylesheets.length) {
-			$loader._loaded();
-		}
-	},
-	
-	_onCSSLoaded: function() {
-		if($loader._loadedScripts.length >= $loader._scripts.length) {
-			$loader._loaded();
-		}
 	},
 	
 	_loaded: function() {

@@ -93,10 +93,10 @@ var $j = {
 		/**
 			Include a script from the application's script directory into the current script.
 		*/
-		script: function(name) {
+		script: function(name, callback) {
 			var resourceName = $j._appScriptsURL + name + '.js';
 			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript');
+				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
 				$j.grab._loadedScripts[resourceName] = true;
 			}
 		},
@@ -104,10 +104,10 @@ var $j = {
 		/**
 			Include a script from jCombo's javascript library directory into the current script.
 		*/
-		lib: function(name) {
+		lib: function(name, callback) {
 			var resourceName = $j._jsLibsURL + name + '.js';
 			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript');
+				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
 				$j.grab._loadedScripts[resourceName] = true;
 			}
 		},
@@ -115,10 +115,10 @@ var $j = {
 		/**
 			Include a script from a given URL.
 		*/
-		remoteScript: function(url) {
+		remoteScript: function(url, callback) {
 			var resourceName = url;
 			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript');
+				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
 				$j.grab._loadedScripts[resourceName] = true;
 			}
 		},
@@ -126,7 +126,7 @@ var $j = {
 		/**
 			Include an application CSS stylesheet (from the application directory) into the application.
 		*/
-		appCSS: function(name) {
+		appCSS: function(name, callback) {
 			var resourceName = $j._appStylesURL + name + '.css';
 			
 			if(!$j.grab._loadedCSS[resourceName]) {
@@ -138,7 +138,7 @@ var $j = {
 		/**
 			Include a default framework CSS stylesheet (from the jcombo framework directory) into the application.
 		*/
-		frameworkCSS: function(name) {
+		frameworkCSS: function(name, callback) {
 			var resourceName = $j._frameworkStylesURL + name + '.css';
 			
 			if(!$j.grab._loadedCSS[resourceName]) {
@@ -296,30 +296,46 @@ var $j = {
 		
 		/**
 			Insert a script tag into the current document as it is being constructed.
-			The id parameter is optional.
+			The id & callback parameters are optional.
 		*/
-		scriptTag: function(url, type, id) {
-			var script = $(document.createElement('script'));
+		scriptTag: function(url, type, id, callback) {
+			var head = document.getElementsByTagName('head')[0];
+			var initScript = document.getElementById('jComboInitScript');
+		
+			var script = document.createElement('script');
 			if(id) {
-				script.attr('id', id);
+				script.id = id;
 			}
-			script.attr({'type': type, 'src': url});
+			script.type = type;
+			script.src = url;
 			
-			$('#jComboInitScript').before(script);	
+			if(callback) {
+				script.onload = callback;
+			}
+			
+			head.insertBefore(script, initScript);
 		},
 		
 		/** 
 			Insert a link tag into the current document as it is being constructed.
-			The id parameter is optional.
+			The id & callback parameters are optional.
 		*/
 		linkTag: function(url, type, rel, id) {
-			var link = $(document.createElement('script'));
-			if(id) {
-				link.attr('id', id);
-			}
-			link.attr({'rel': rel, 'type': type, 'href': url});
+			var head = document.getElementsByTagName('head')[0];
+			var link = document.createElement('link');
 			
-			$('head').prepend(link);
+			if(id) {
+				link.id = id;
+			}
+			link.rel = "stylesheet";
+			link.type = type;
+			link.href = url;
+			
+			if(head.firstChild) {
+				head.insertBefore(link, head.firstChild);
+			} else {
+				head.appendChild(link);
+			}			
 		}
 	},
 	
