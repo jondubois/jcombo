@@ -340,10 +340,14 @@ var $j = {
 		
 		loadAndEmbedScript: function(url, callback) {
 			$j.grab._loadResourceToCache(url, function() {
-				$j.grab.scriptTag(url, 'text/javascript');
-				if(callback) {
-					callback();
-				}
+				$j.grab.scriptTag(url, 'text/javascript', null, function() {
+					if(callback) {
+						callback();
+					}
+					if(!$j.grab.isLoading()) {
+						$j._triggerReady();
+					}
+				});
 			});
 		},
 		
@@ -353,6 +357,9 @@ var $j = {
 				if(callback) {
 					callback();
 				}
+				if(!$j.grab.isLoading()) {
+					$j._triggerReady();
+				}
 			});
 		},
 		
@@ -360,11 +367,19 @@ var $j = {
 			Insert a script tag into the current document as it is being constructed.
 			The id & callback parameters are optional.
 		*/
-		scriptTag: function(url, type, id) {		
+		scriptTag: function(url, type, id, callback) {		
 			var head = document.getElementsByTagName('head')[0];
 			var initScript = document.getElementById('jComboInitScript');
 		
 			var script = document.createElement('script');
+			
+			
+			if(!$.browser.msie || parseInt($.browser.version) > 8) {
+				script.onload = callback;
+			} else {
+				script.onreadystatechange = callback;
+			}
+			
 			if(id) {
 				script.id = id;
 			}
@@ -409,10 +424,6 @@ var $j = {
 				success: function() {
 					$j.grab._loadedResources.push(url);
 					callback();
-					
-					if(!$j.grab.isLoading()) {
-						$j._triggerReady();
-					}
 				},
 				error: function() {throw $j.errors.loadError(url);}
 			});
