@@ -138,8 +138,8 @@ class Router {
 				$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";
 			}
 			
-			$embedScripts = str_replace('\/', '/', json_encode(self::$jsFiles));
-			$embedStyles = str_replace('\/', '/', json_encode(self::$cssFiles));
+			$resources = array_merge(self::$cssFiles, self::$jsFiles);
+			$loadResources = str_replace('\/', '/', json_encode($resources));
 			
 			// this is to keep track of changes made to code in the middle a user's session
 			$_SESSION['loadedFiles'] = array('js'=>self::$jsFiles, 'css'=>self::$cssFiles);
@@ -147,7 +147,7 @@ class Router {
 			self::embedScript(JC_FRAMEWORK_URL.'loader.js');
 			self::embedScript(PathManager::convertPathToURL($loaderPath));
 			
-			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$embedScripts.', '.$embedStyles.');</script>';
+			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$loadResources.');</script>';
 			self::$headCode .= "\n";
 		}
 	}

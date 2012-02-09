@@ -14,7 +14,7 @@ var Load = {
 	_browser: null,
 	_imgLoaded: false,
     
-	start: function(frameworkURL, scripts, stylesheets) {
+	start: function(frameworkURL, resources) {
 		Load._frameworkURL = frameworkURL;
 		Load._loaderAnimText = [];
 		Load._browser = navigator.appName;
@@ -27,7 +27,7 @@ var Load = {
 	},
 	
 	_load: function(loadImageURL, loadImageCaption, loadImageLinkURL, loadTextAnimation) {
-		$loader.onLoad(Load._loaded);
+		$loader.load(Load._loaded);
 		
 		Load._loader = document.createElement('div');
 		Load._loader.style.position = 'absolute';
@@ -73,7 +73,7 @@ var Load = {
 	},
 	
 	_ready: function() {
-		$loader.loadAll();
+		$loader.startLoading();
 		
 		if(Load._loader) {
 			document.body.appendChild(Load._loader);

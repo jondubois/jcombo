@@ -41,11 +41,15 @@ var $j = {
 		},
 		
 		loadTemplateError: function(message) {
-			return "LoadTemplateError: System could not load one or more templates because of the following AJAX error: " + message;
+			return "LoadTemplateError: Could not load one or more templates because of the following AJAX error: " + message;
 		},
 		
 		serverInterfaceError: function(message) {
 			return "ServerInterfaceError: " + message;
+		},
+		
+		loadError: function(resourceURL) {
+			return "LoadError: Failed to load resource: " + resourceURL;
 		}
 	},
 	
@@ -86,18 +90,20 @@ var $j = {
 		Some grab methods allow you to load resources either synchronously or asynchronously.
 	*/
 	grab: {
-		_loadedScripts: new Object(),
-		_loadedCSS: new Object(),
+		_activeScripts: new Object(),
+		_activeCSS: new Object(),
 		_loadedTemplates: new Object(),
+		_resources: [],
+		_loadedResources: [],
 		
 		/**
 			Include a script from the application's script directory into the current script.
 		*/
 		script: function(name, callback) {
 			var resourceName = $j._appScriptsURL + name + '.js';
-			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
-				$j.grab._loadedScripts[resourceName] = true;
+			if(!$j.grab._activeScripts[resourceName]) {
+				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
 		
@@ -106,9 +112,9 @@ var $j = {
 		*/
 		lib: function(name, callback) {
 			var resourceName = $j._jsLibsURL + name + '.js';
-			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
-				$j.grab._loadedScripts[resourceName] = true;
+			if(!$j.grab._activeScripts[resourceName]) {
+				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
 		
@@ -117,9 +123,9 @@ var $j = {
 		*/
 		remoteScript: function(url, callback) {
 			var resourceName = url;
-			if(!$j.grab._loadedScripts[resourceName]) {
-				$j.grab.scriptTag(resourceName, 'text/javascript', null, callback);
-				$j.grab._loadedScripts[resourceName] = true;
+			if(!$j.grab._activeScripts[resourceName]) {
+				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
 		
@@ -129,9 +135,9 @@ var $j = {
 		appCSS: function(name, callback) {
 			var resourceName = $j._appStylesURL + name + '.css';
 			
-			if(!$j.grab._loadedCSS[resourceName]) {
-				$j.grab.linkTag(resourceName, 'text/css', 'stylesheet');
-				$j.grab._loadedCSS[resourceName] = true;
+			if(!$j.grab._activeCSS[resourceName]) {
+				$j.grab.loadAndEmbedCSS(resourceName, callback);
+				$j.grab._activeCSS[resourceName] = true;
 			}
 		},
 		
@@ -141,9 +147,9 @@ var $j = {
 		frameworkCSS: function(name, callback) {
 			var resourceName = $j._frameworkStylesURL + name + '.css';
 			
-			if(!$j.grab._loadedCSS[resourceName]) {
-				$j.grab.linkTag(resourceName, 'text/css', 'stylesheet');
-				$j.grab._loadedCSS[resourceName] = true;
+			if(!$j.grab._activeCSS[resourceName]) {
+				$j.grab.loadAndEmbedCSS(resourceName, callback);
+				$j.grab._activeCSS[resourceName] = true;
 			}
 		},
 		
@@ -294,11 +300,29 @@ var $j = {
 			}
 		},
 		
+		loadAndEmbedScript: function(url, callback) {
+			$j.grab._loadResourceToCache(url, function() {
+				$j.grab.scriptTag(url, 'text/javascript');
+				if(callback) {
+					callback();
+				}
+			});
+		},
+		
+		loadAndEmbedCSS: function(url, callback) {
+			$j.grab._loadResourceToCache(url, function() {
+				$j.grab.linkTag(url, 'text/css', 'stylesheet');
+				if(callback) {
+					callback();
+				}
+			});
+		},
+		
 		/**
 			Insert a script tag into the current document as it is being constructed.
 			The id & callback parameters are optional.
 		*/
-		scriptTag: function(url, type, id, callback) {
+		scriptTag: function(url, type, id) {		
 			var head = document.getElementsByTagName('head')[0];
 			var initScript = document.getElementById('jComboInitScript');
 		
@@ -308,10 +332,6 @@ var $j = {
 			}
 			script.type = type;
 			script.src = url;
-			
-			if(callback) {
-				script.onload = callback;
-			}
 			
 			head.insertBefore(script, initScript);
 		},
@@ -327,7 +347,7 @@ var $j = {
 			if(id) {
 				link.id = id;
 			}
-			link.rel = "stylesheet";
+			link.rel = rel;
 			link.type = type;
 			link.href = url;
 			
@@ -336,6 +356,20 @@ var $j = {
 			} else {
 				head.appendChild(link);
 			}			
+		},
+		
+		_loadResourceToCache: function(url, callback) {
+			$j.grab._resources.push(url);
+			$.ajax({
+				url: url,
+				type: "GET",
+				dataType: "html",
+				success: function() {
+					$j.grab._loadedResources.push(url);
+					callback();
+				},
+				error: function() {throw $j.errors.loadError(url);}
+			});
 		}
 	},
 	
