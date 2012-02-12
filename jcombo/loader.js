@@ -9,9 +9,8 @@ var $loader = {
 	_loadedResources: null,
 	
 	_waitForReadyInterval: null,
-	
-	_loadCallbacks: null,
 	_attempts: null,
+	_allLoadCallback: null,
 
 	setLoader: function(loader) {
 		$loader._loader = loader;
@@ -22,7 +21,7 @@ var $loader = {
 		$loader._resources = resources;
 		$loader._loadedResources = [];
 		$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
-		$loader._loadCallbacks = [];
+		$loader._allLoadCallback = null;
 		$loader._attempts = 0;
 	},
 	
@@ -55,25 +54,18 @@ var $loader = {
 		xmlhttp.send();
 	},
 	
-	startLoading: function() {
+	loadAll: function(callback) {
+		if(callback) {
+			$loader._allLoadCallback = callback;
+		}
 		if($loader._loadedResources.length < $loader._resources.length) {
-			$loader.loadResource($loader._resources[$loader._loadedResources.length], null, $loader.startLoading);
+			$loader.loadResource($loader._resources[$loader._loadedResources.length], null, $loader.loadAll);
 		} else {
-			$loader._loaded();
+			if($loader._allLoadCallback) {
+				$loader._allLoadCallback();
+			}
+			
 		}
-	},
-	
-	_loaded: function() {
-		var len = $loader._loadCallbacks.length;
-		var i;
-		
-		for(i=0; i<len; i++) {
-			$loader._loadCallbacks[i]();
-		}
-	},
-	
-	load: function(callback) {
-		$loader._loadCallbacks.push(callback);
 	},
 	
 	finish: function() {

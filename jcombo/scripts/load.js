@@ -26,9 +26,7 @@ var Load = {
 		Load._load(imgURL, 'jCombo', 'http://jcombo.com/', textAnim);
 	},
 	
-	_load: function(loadImageURL, loadImageCaption, loadImageLinkURL, loadTextAnimation) {
-		$loader.load(Load._loaded);
-		
+	_load: function(loadImageURL, loadImageCaption, loadImageLinkURL, loadTextAnimation) {		
 		Load._loader = document.createElement('div');
 		Load._loader.style.position = 'absolute';
 		Load._loader.style.visibility = 'hidden';
@@ -73,7 +71,7 @@ var Load = {
 	},
 	
 	_ready: function() {
-		$loader.startLoading();
+		$loader.loadAll(Load._loaded);
 		
 		if(Load._loader) {
 			document.body.appendChild(Load._loader);
@@ -82,7 +80,6 @@ var Load = {
 			var loadHeight = Load._loader.offsetHeight;
 			
 			Load._loader.style.top = (Load.getWindowHeight() - loadHeight)/2 + 'px';
-			
 			Load._loader.style.left = (Load.getWindowWidth() - loadWidth)/2 + 'px';
 			Load._loader.style.visibility = 'visible';
 			
