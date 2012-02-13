@@ -48,15 +48,14 @@ var Load = {
 		linkEl.setAttribute('target', '_blank');
 		
 		var imgEl = document.createElement('img');
-		imgEl.setAttribute('border', '0px');
 		imgEl.setAttribute('src', loadImageURL);
 		imgEl.setAttribute('alt', loadImageCaption);
+		imgEl.setAttribute('border', '0px');
 		
 		Load._loaderTextBox = document.createElement('div');
-		Load._loaderTextBox.style.marginTop = '3px';
+		Load._loaderTextBox.style.marginTop = '4px';
 		Load._loaderTextBox.style.fontSize = '12px';
 		Load._loaderTextBox.style.color = '#666';
-		Load._loaderTextBox.style.width = '100%';
 		
 		Load._loaderTextBox.innerHTML = startText;
 		

@@ -10,12 +10,14 @@ Router::exec();
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>jCombo App</title>
-<style type="text/css">
-body {
-	font-family:Arial, Helvetica, sans-serif;
-}
-</style>
+<link rel="stylesheet" type="text/css" href="<?php echo JC_FRAMEWORK_STYLES_URL; ?>jcombo.css" />
 </head>
 <body>
+<noscript>
+<div id="centeredNoScriptContent">
+	<a href="http://jcombo.com/" target="_blank"><img src="<?php echo JC_FRAMEWORK_URL; ?>assets/logo.png" alt="jCombo" border="0px" /></a>
+	<div class="textDiv">JavaScript needs to be enabled in order to run this application.</div>
+</div>
+</noscript>
 </body>
 </html>

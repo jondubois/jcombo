@@ -1,0 +1,19 @@
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#centeredNoScriptContent {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-top: -85px;
+	margin-left: -60px;
+	font-size: 12px;
+	color: #666;
+}
+
+#centeredNoScriptContent .textDiv {
+	width: 120px;
+	margin-top: 4px;
+	text-align: center;
+}
