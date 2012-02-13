@@ -396,18 +396,6 @@ var $j = {
 		linkTag: function(url, type, rel, id) {
 			var head = document.getElementsByTagName('head')[0];
 			
-			var curLinks = document.getElementsByTagName('link');
-			var lastLink = null;
-			var lastIndex = curLinks.length - 1;
-			if(curLinks) {
-				while(lastIndex >= 0 && curLinks[lastIndex].parentNode != head) {
-					lastIndex--;
-				}
-				if(lastIndex >= 0) {
-					lastLink = curLinks[lastIndex];
-				}
-			}
-			
 			var curScripts = document.getElementsByTagName('script');
 			var firstScript = null;
 			var firstIndex = 0;
@@ -431,16 +419,30 @@ var $j = {
 			link.type = type;
 			link.href = url;
 			
-			if(lastLink) {
-				if(lastLink.nextSibling) {
-					head.insertBefore(link, lastLink.nextSibling);
+			if(firstScript) {
+				head.insertBefore(link, firstScript);
+			} else {
+				var curLinks = document.getElementsByTagName('link');
+				var lastLink = null;
+				var lastIndex = curLinks.length - 1;
+				if(curLinks) {
+					while(lastIndex >= 0 && curLinks[lastIndex].parentNode != head) {
+						lastIndex--;
+					}
+					if(lastIndex >= 0) {
+						lastLink = curLinks[lastIndex];
+					}
+				}
+				
+				if(lastLink) {
+					if(lastLink.nextSibling) {
+						head.insertBefore(link, lastLink.nextSibling);
+					} else {
+						head.appendChild(link);
+					}
 				} else {
 					head.appendChild(link);
 				}
-			} else if(firstScript) {
-				head.insertBefore(link, firstScript);
-			} else {
-				head.appendChild(link);
 			}
 		},
 		
