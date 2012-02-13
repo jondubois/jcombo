@@ -11,6 +11,7 @@ var $loader = {
 	_waitForReadyInterval: null,
 	_attempts: null,
 	_allLoadCallback: null,
+	_loadFailCallback: null,
 
 	setLoader: function(loader) {
 		$loader._loader = loader;
@@ -22,6 +23,7 @@ var $loader = {
 		$loader._loadedResources = [];
 		$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
 		$loader._allLoadCallback = null;
+		$loader._loadFailCallback = null;
 		$loader._attempts = 0;
 	},
 	
@@ -38,7 +40,7 @@ var $loader = {
 		$loader._loader.start($loader._frameworkURL, $loader._resources);
 	},
 	
-	loadResource: function(url, callback, doNotPassURL) {
+	loadResource: function(url, successCallback, errorCallback, doNotPassURL) {
 		var xmlhttp = $loader._getHTTPReqObject();
 		xmlhttp.open("GET", url, true);
 		xmlhttp.onreadystatechange = function() {
@@ -47,11 +49,12 @@ var $loader = {
 					$loader._loadedResources.push(url);
 					
 					if(doNotPassURL) {
-						callback();
+						successCallback();
 					} else {
-						callback(url);
+						successCallback(url);
 					}
 				} else {
+					errorCallback(url);
 					throw "Failed to load resource: " + url;
 				}
 			}
@@ -59,17 +62,27 @@ var $loader = {
 		xmlhttp.send();
 	},
 	
-	loadAll: function(callback) {
-		if(callback) {
-			$loader._allLoadCallback = callback;
+	loadAll: function(successCallback, errorCallback) {
+		if(successCallback) {
+			$loader._allLoadCallback = successCallback;
 		}
+		if(errorCallback) {
+			$loader._loadFailCallback = errorCallback;
+		}
+		
 		if($loader._loadedResources.length < $loader._resources.length) {
-			$loader.loadResource($loader._resources[$loader._loadedResources.length], $loader.loadAll, true);
+			$loader.loadResource($loader._resources[$loader._loadedResources.length], $loader.loadAll, $loader._loadAllFail, true);
 		} else {
 			if($loader._allLoadCallback) {
 				$loader._allLoadCallback($loader._loadedResources);
 			}
 			
+		}
+	},
+	
+	_loadAllFail: function() {
+		if($loader._loadFailCallback) {
+			$loader._loadFailCallback($loader._resources, $loader._loadedResources);
 		}
 	},
 	

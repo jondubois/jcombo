@@ -70,7 +70,7 @@ var Load = {
 	},
 	
 	_ready: function() {
-		$loader.loadAll(Load._loaded);
+		$loader.loadAll(Load._loaded, function() {alert('One or more resources could not be loaded - Please try refreshing the page.')});
 		
 		if(Load._loader) {
 			document.body.appendChild(Load._loader);

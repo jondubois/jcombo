@@ -137,10 +137,10 @@ var $j = {
 		/**
 			Include a script from the application's script directory into the current script.
 		*/
-		script: function(name, callback) {
+		script: function(name, successCallback, errorCallback) {
 			var resourceName = $j._appScriptsURL + name + '.js';
 			if(!$j.grab._activeScripts[resourceName]) {
-				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab.loadAndEmbedScript(resourceName, successCallback, errorCallback);
 				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
@@ -148,10 +148,10 @@ var $j = {
 		/**
 			Include a script from jCombo's javascript library directory into the current script.
 		*/
-		lib: function(name, callback) {
+		lib: function(name, successCallback, errorCallback) {
 			var resourceName = $j._jsLibsURL + name + '.js';
 			if(!$j.grab._activeScripts[resourceName]) {
-				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab.loadAndEmbedScript(resourceName, successCallback, errorCallback);
 				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
@@ -159,10 +159,10 @@ var $j = {
 		/**
 			Include a script from a given URL.
 		*/
-		remoteScript: function(url, callback) {
+		remoteScript: function(url, successCallback, errorCallback) {
 			var resourceName = url;
 			if(!$j.grab._activeScripts[resourceName]) {
-				$j.grab.loadAndEmbedScript(resourceName, callback);
+				$j.grab.loadAndEmbedScript(resourceName, successCallback, errorCallback);
 				$j.grab._activeScripts[resourceName] = true;
 			}
 		},
@@ -170,11 +170,11 @@ var $j = {
 		/**
 			Include an application CSS stylesheet (from the application directory) into the application.
 		*/
-		appCSS: function(name, callback) {
+		appCSS: function(name, successCallback, errorCallback) {
 			var resourceName = $j._appStylesURL + name + '.css';
 			
 			if(!$j.grab._activeCSS[resourceName]) {
-				$j.grab.loadAndEmbedCSS(resourceName, callback);
+				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
 			}
 		},
@@ -182,11 +182,11 @@ var $j = {
 		/**
 			Include a default framework CSS stylesheet (from the jcombo framework directory) into the application.
 		*/
-		frameworkCSS: function(name, callback) {
+		frameworkCSS: function(name, successCallback, errorCallback) {
 			var resourceName = $j._frameworkStylesURL + name + '.css';
 			
 			if(!$j.grab._activeCSS[resourceName]) {
-				$j.grab.loadAndEmbedCSS(resourceName, callback);
+				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
 			}
 		},
@@ -194,8 +194,14 @@ var $j = {
 		/**
 			Get the the image at the given URL and start downloading it.
 		*/
-		image: function(url) {
-			var img = new Image();			
+		image: function(url, callback) {
+			var img = new Image();
+			if(callback) {
+				img.onload = function() {
+					callback(url);
+				}
+			}
+			
 			img.src = url;
 			return img;
 		},
@@ -338,29 +344,29 @@ var $j = {
 			}
 		},
 		
-		loadAndEmbedScript: function(url, callback) {
+		loadAndEmbedScript: function(url, successCallback, errorCallback) {
 			$j.grab._loadResourceToCache(url, function() {
 				$j.grab.scriptTag(url, 'text/javascript', null, function() {
-					if(callback) {
-						callback(url);
+					if(successCallback) {
+						successCallback(url);
 					}
 					if(!$j.grab.isLoading()) {
 						$j._triggerReady();
 					}
 				});
-			});
+			}, errorCallback);
 		},
 		
-		loadAndEmbedCSS: function(url, callback) {
+		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
 			$j.grab._loadResourceToCache(url, function() {
 				$j.grab.linkTag(url, 'text/css', 'stylesheet');
-				if(callback) {
-					callback(url);
+				if(successCallback) {
+					successCallback(url);
 				}
 				if(!$j.grab.isLoading()) {
 					$j._triggerReady();
 				}
-			});
+			}, errorCallback);
 		},
 		
 		/**
@@ -372,7 +378,6 @@ var $j = {
 			var initScript = document.getElementById('jComboInitScript');
 		
 			var script = document.createElement('script');
-			
 			
 			if(!$.browser.msie || parseInt($.browser.version) > 8) {
 				script.onload = function() {callback(url)};
@@ -450,7 +455,7 @@ var $j = {
 			return $j.grab._loadedResources.length < $j.grab._resources.length;
 		},
 		
-		_loadResourceToCache: function(url, callback) {
+		_loadResourceToCache: function(url, successCallback, errorCallback) {
 			$j.grab._resources.push(url);
 			$.ajax({
 				url: url,
@@ -458,9 +463,11 @@ var $j = {
 				dataType: "html",
 				success: function() {
 					$j.grab._loadedResources.push(url);
-					callback(url);
+					successCallback(url);
 				},
-				error: function() {throw $j.errors.loadError(url);}
+				error: function() {
+					errorCallback(url);
+				}
 			});
 		}
 	},
