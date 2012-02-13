@@ -38,14 +38,19 @@ var $loader = {
 		$loader._loader.start($loader._frameworkURL, $loader._resources);
 	},
 	
-	loadResource: function(url, id, callback) {
+	loadResource: function(url, callback, doNotPassURL) {
 		var xmlhttp = $loader._getHTTPReqObject();
 		xmlhttp.open("GET", url, true);
 		xmlhttp.onreadystatechange = function() {
 			if(xmlhttp.readyState == 4) {
 				if(xmlhttp.status == 200) {
 					$loader._loadedResources.push(url);
-					callback();
+					
+					if(doNotPassURL) {
+						callback();
+					} else {
+						callback(url);
+					}
 				} else {
 					throw "Failed to load resource: " + url;
 				}
@@ -59,10 +64,10 @@ var $loader = {
 			$loader._allLoadCallback = callback;
 		}
 		if($loader._loadedResources.length < $loader._resources.length) {
-			$loader.loadResource($loader._resources[$loader._loadedResources.length], null, $loader.loadAll);
+			$loader.loadResource($loader._resources[$loader._loadedResources.length], $loader.loadAll, true);
 		} else {
 			if($loader._allLoadCallback) {
-				$loader._allLoadCallback();
+				$loader._allLoadCallback($loader._loadedResources);
 			}
 			
 		}

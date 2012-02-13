@@ -342,7 +342,7 @@ var $j = {
 			$j.grab._loadResourceToCache(url, function() {
 				$j.grab.scriptTag(url, 'text/javascript', null, function() {
 					if(callback) {
-						callback();
+						callback(url);
 					}
 					if(!$j.grab.isLoading()) {
 						$j._triggerReady();
@@ -355,7 +355,7 @@ var $j = {
 			$j.grab._loadResourceToCache(url, function() {
 				$j.grab.linkTag(url, 'text/css', 'stylesheet');
 				if(callback) {
-					callback();
+					callback(url);
 				}
 				if(!$j.grab.isLoading()) {
 					$j._triggerReady();
@@ -375,9 +375,9 @@ var $j = {
 			
 			
 			if(!$.browser.msie || parseInt($.browser.version) > 8) {
-				script.onload = callback;
+				script.onload = function() {callback(url)};
 			} else {
-				script.onreadystatechange = callback;
+				script.onreadystatechange = function() {callback(url)};
 			}
 			
 			if(id) {
@@ -458,7 +458,7 @@ var $j = {
 				dataType: "html",
 				success: function() {
 					$j.grab._loadedResources.push(url);
-					callback();
+					callback(url);
 				},
 				error: function() {throw $j.errors.loadError(url);}
 			});

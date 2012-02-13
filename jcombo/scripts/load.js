@@ -22,7 +22,7 @@ var Load = {
 		var imgURL = Load._frameworkURL + 'assets/logo.png';
 		var textAnim = ['Loading jCombo App', 'Loading jCombo App.', 'Loading jCombo App..', 
 				'Loading jCombo App...', 'Loading jCombo App..', 'Loading jCombo App.'];
-			
+		
 		Load._load(imgURL, 'jCombo', 'http://jcombo.com/', textAnim);
 	},
 	
