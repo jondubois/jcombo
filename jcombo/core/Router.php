@@ -20,7 +20,6 @@ class Router {
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
 	public static function init($applicationDirPath, $logErrors=true) {
-		session_start();
 		ob_start(array('Router', 'outputBuffer'));
 		
 		self::$error = false;

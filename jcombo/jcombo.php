@@ -1,7 +1,7 @@
 <?php
 /**	
 * This PHP script includes all the necessary JavaScript files and libraries into the parent HTML document.
-* To make use of JCombo inside a page of your choice, you need to place a PHP include to this file
+* To make use of jCombo inside a page of your choice, you need to place a PHP include to this file
 * within your document's <head></head> tag. E.g. include_once('jcombo/jcombo.php');
 */
 

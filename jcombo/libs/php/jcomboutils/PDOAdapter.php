@@ -1,6 +1,6 @@
 <?php
 /**
-* The PDOAdapter class is a wrapper for PHP's PDO class which is optimized for use within JCombo.
+* The PDOAdapter class is a wrapper for PHP's PDO class which is optimized for use within jCombo.
 * It serves as an interface to a variety of databases - It returns simple datatypes such as integers, strings and arrays which
 * can be easily converted to JSON.
 */

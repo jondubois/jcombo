@@ -34,7 +34,7 @@ class ServerGateway {
 	private static $error;
 	
 	/*
-		Executes a JCombo request and returns the result.
+		Executes a jCombo request and returns the result.
 	*/
 	public static function execRequest($requestJSON) {		
 		self::$error = false;
