@@ -61,10 +61,9 @@ var $j = {
 	_execReadyCallbacks: function() {
 		var len = $j._readyCallbacks.length;
 		var i;
-		for(i=0; i<len; i++) {
+		for(i=len-1; i>=0; i--) {
 			$j._readyCallbacks[i]();
 		}
-		
 		$j._readyCallbacks = [];
 	},
 	
@@ -132,7 +131,17 @@ var $j = {
 		_activeCSS: new Object(),
 		_loadedTemplates: new Object(),
 		_resources: [],
-		_loadedResources: [],
+		_resourcesLoaded: [],
+		_deepResources: [],
+		_deepResourcesLoaded: [],
+		_resourcesLoadedMap: {},
+		
+		_deepResources: {},
+		_deepResourcesLoaded: {},
+		_cssImportRegex: /@import +(url([(] *| +))?"[^"]*"/g,
+		_quoteRegex: /"([^"]*)"/,
+		_curFileDir: /^(.*)\//,
+		
 		
 		/**
 			Include a script from the application's script directory into the current script.
@@ -345,7 +354,7 @@ var $j = {
 		},
 		
 		loadAndEmbedScript: function(url, successCallback, errorCallback) {
-			$j.grab._loadResourceToCache(url, function() {
+			$j.grab._loadDeepResourceToCache(url, function() {
 				$j.grab.scriptTag(url, 'text/javascript', null, function() {
 					if(successCallback) {
 						successCallback(url);
@@ -358,7 +367,7 @@ var $j = {
 		},
 		
 		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
-			$j.grab._loadResourceToCache(url, function() {
+			$j.grab._loadDeepResourceToCache(url, function() {
 				$j.grab.linkTag(url, 'text/css', 'stylesheet');
 				if(successCallback) {
 					successCallback(url);
@@ -380,9 +389,9 @@ var $j = {
 			var script = document.createElement('script');
 			
 			if(!$.browser.msie || parseInt($.browser.version) > 8) {
-				script.onload = function() {callback(url)};
+				script.onload = function() {callback(url);};
 			} else {
-				script.onreadystatechange = function() {callback(url)};
+				script.onreadystatechange = function() {callback(url);};
 			}
 			
 			if(id) {
@@ -452,23 +461,153 @@ var $j = {
 		},
 		
 		isLoading: function() {
-			return $j.grab._loadedResources.length < $j.grab._resources.length;
+			return $j.grab._resourcesLoaded.length < $j.grab._resources.length;
 		},
 		
-		_loadResourceToCache: function(url, successCallback, errorCallback) {
-			$j.grab._resources.push(url);
-			$.ajax({
-				url: url,
-				type: "GET",
-				dataType: "html",
-				success: function() {
-					$j.grab._loadedResources.push(url);
-					successCallback(url);
-				},
-				error: function() {
-					errorCallback(url);
+		_loadDeepResourceToCache: function(url, successCallback, errorCallback, rootURL) {
+			if(!$j.grab._resourcesLoadedMap[url]) {
+				if(!rootURL || url == rootURL) {
+					rootURL = url;
+					$j.grab._resources.push(url);
+					$j.grab._deepResources[rootURL] = [];
+					$j.grab._deepResourcesLoaded[rootURL] = [];
 				}
-			});
+				
+				$j.grab._deepResources[rootURL].push(url);
+				
+				if(/[.](png|jpg|gif|bmp|wbm)$/.test(url)) {
+					// images
+					var img = new Image();
+					img.onload = function() {
+						$j.grab._resourcesLoadedMap[url] = true;
+						$j.grab._deepResourcesLoaded[rootURL].push(url);
+						
+						if($j.grab._deepResourcesLoaded[rootURL].length >= $j.grab._deepResources[rootURL].length) {
+							$j.grab._resourcesLoaded.push(rootURL);
+							if(successCallback) {
+								successCallback(rootURL);
+							}
+						}
+					};
+					
+					img.onerror = function() {
+						if(errorCallback) {
+							errorCallback(url);
+						} else {
+							throw $j.errors.loadError(url);
+						}
+					};
+					
+					img.src = url;
+				} else {
+					// all text-based files
+					$.ajax({
+						url: url,
+						type: "GET",
+						dataType: "html",
+						cache: true,
+						success: function(data) {
+							$j.grab._resourcesLoadedMap[url] = true;
+							$j.grab._deepResourcesLoaded[rootURL].push(url);
+							var urls;
+							if(/[.]css$/.test(url)) {
+								urls = $j.grab._parseDeepCSSURLs(data, url);
+								
+								var i, curURL;
+								var len = urls.length;
+								for(i=0; i<len; i++) {
+									curURL = urls[i];
+									
+									if(!$j.grab._resourcesLoadedMap[curURL]) {
+										$j.grab._loadDeepResourceToCache(curURL, successCallback, errorCallback, rootURL);
+									}
+								}
+							}
+							
+							if($j.grab._deepResourcesLoaded[rootURL].length >= $j.grab._deepResources[rootURL].length) {
+								$j.grab._resourcesLoaded.push(rootURL);
+								if(successCallback) {
+									successCallback(rootURL);
+								}
+							}
+						},
+						
+						error: function() {
+							if(errorCallback) {
+								errorCallback(url);
+							} else {
+								throw $j.errors.loadError(url);
+							}
+						}
+					});
+				}
+			}
+		},
+		
+		_parseDeepCSSURLs: function(fileContent, fileURL) {
+			var urls = [];
+			var fileDirURL = fileURL.match(/^(.*)\//)[0];
+			
+			var chuncks = $j.grab._parseFunctionCalls(fileContent, ['url']);
+			
+			var imports = fileContent.match(/@import +["'][^"']+["']/g);
+			if(imports) {
+				chuncks = chuncks.concat(imports);
+			}
+			
+			var isolateURL = /(^url[(][ ]*"?|"?[)]$|^@import[ ]*["']|"$)/g;
+			var absolute = /^https?:[/][/]/;
+			
+			var i, curURL;
+			var len = chuncks.length;
+			for(i=0; i<len; i++) {
+				curURL = chuncks[i].replace(isolateURL, '');
+				if(curURL != "") {
+					if(!absolute.test(curURL)) {
+						urls.push(fileDirURL + curURL);
+					} else {
+						urls.push(curURL);
+					}
+				}
+			}
+				
+			return urls;
+		},
+		
+		_parseFunctionCalls: function(string, functionNames) {
+			var functionCalls = [];
+			var functionsRegex = new RegExp('(([^A-Za-z0-9]|^)' + functionNames.join(' *[(]|([^A-Za-z0-9]|^)') + ' *[(])', 'gm');
+			var startPos = 0;
+			var i, ch, len, curFunc, bt;
+			while(true) {
+				startPos = string.search(functionsRegex);
+				if(startPos < 0) {
+					break;
+				}
+				
+				if(string.charAt(startPos) == '(') {
+					startPos++;
+				}
+				
+				curFunc = '';
+				len = string.length;
+				bt = 0;
+				for(i=startPos; i<len; i++) {
+					ch = string.charAt(i);
+					curFunc += ch;
+					
+					if(ch == '(') {
+						bt++;
+					} else if(ch == ')') {
+						if(--bt == 0) {
+							functionCalls.push(curFunc.replace(/^[^A-Za-z0-9]/, ''));
+							break;
+						}
+					}
+				}
+				string = string.substr(startPos + 2);
+			}
+			return functionCalls;
 		}
 	},
 	
