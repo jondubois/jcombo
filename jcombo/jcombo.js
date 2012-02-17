@@ -35,7 +35,7 @@ var $j = {
 		
 		$(window).load(function() {
 			$j._isWindowLoaded = true;
-			if($j._readyCallbacks.length > 0 && !$j.grab.isLoading()) {
+			if($j._readyCallbacks.length > 0 && !$j.grab.isGrabbing()) {
 				$j._execReadyCallbacks();
 			}
 		});
@@ -45,7 +45,7 @@ var $j = {
 		Bind a callback function to jCombo's ready event. The specified function will be called when jCombo is ready to begin processing.
 	*/
 	ready: function(callback) {
-		if($j._isWindowLoaded && !$j.grab.isLoading()) {
+		if($j._isWindowLoaded && !$j.grab.isGrabbing()) {
 			callback();
 		} else {
 			$j._readyCallbacks.push(callback);
@@ -132,6 +132,7 @@ var $j = {
 		_loadedTemplates: new Object(),
 		_resources: [],
 		_resourcesLoaded: [],
+		_resourcesGrabbed: [],
 		_deepResources: [],
 		_deepResourcesLoaded: [],
 		_resourcesLoadedMap: {},
@@ -356,10 +357,11 @@ var $j = {
 		loadAndEmbedScript: function(url, successCallback, errorCallback) {
 			$j.grab._loadDeepResourceToCache(url, function() {
 				$j.grab.scriptTag(url, 'text/javascript', null, function() {
+					$j.grab._resourcesGrabbed.push(url);
 					if(successCallback) {
 						successCallback(url);
 					}
-					if(!$j.grab.isLoading()) {
+					if(!$j.grab.isGrabbing()) {
 						$j._triggerReady();
 					}
 				});
@@ -368,11 +370,12 @@ var $j = {
 		
 		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
 			$j.grab._loadDeepResourceToCache(url, function() {
+				$j.grab._resourcesGrabbed.push(url);
 				$j.grab.linkTag(url, 'text/css', 'stylesheet');
 				if(successCallback) {
 					successCallback(url);
 				}
-				if(!$j.grab.isLoading()) {
+				if(!$j.grab.isGrabbing()) {
 					$j._triggerReady();
 				}
 			}, errorCallback);
@@ -460,8 +463,8 @@ var $j = {
 			}
 		},
 		
-		isLoading: function() {
-			return $j.grab._resourcesLoaded.length < $j.grab._resources.length;
+		isGrabbing: function() {
+			return $j.grab._resourcesGrabbed.length < $j.grab._resources.length;
 		},
 		
 		_loadDeepResourceToCache: function(url, successCallback, errorCallback, rootURL) {

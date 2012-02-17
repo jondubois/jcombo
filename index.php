@@ -2,7 +2,6 @@
 include_once('../jcombo/jcombo/jcombo.php');
 Router::init('application/');
 Router::useScript('index');
-Router::includeCSS('jqueryui/ui-lightness/jquery.ui.all');
 Router::exec();
 ?>
 
