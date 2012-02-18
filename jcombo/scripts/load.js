@@ -111,7 +111,6 @@ var Load = {
 	},
 	
 	_loaded: function() {
-		Load.hideLoader();
 		$loader.finish();
 	},
 	
