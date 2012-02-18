@@ -41,6 +41,7 @@ class Router {
 		self::$jsFiles = array();
 		self::$cssFiles = array();
 		
+		self::includeCSS('jcombo');
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
 	}
@@ -57,6 +58,51 @@ class Router {
 					self::isSubset($_SESSION['loadedFiles']['css'], self::$cssFiles);
 		}
 		
+		$jComboScriptURL = JC_FRAMEWORK_URL.'jcombo.js';
+		$serverInterfacesPath = JC_APPDATA_DIR.'serverinterfaces.js';
+		$serverInterfacesURL = PathManager::convertPathToURL($serverInterfacesPath);
+		
+		$defaultFile = JC_MAIN_SCRIPT;
+		$notFoundFile = JC_NOT_FOUND_SCRIPT;
+		$notAccessibleFile = JC_NOT_ACCESSIBLE_SCRIPT;
+		
+		$useScriptFile = $defaultFile;
+		
+		if(preg_match_all('/(?<=[?&])[^?&]+/', $_SERVER['REQUEST_URI'], $matches, PREG_PATTERN_ORDER, 0)) {
+			foreach($matches[0] as $match) {
+				if(strpos($match, '=', 0) === false) {
+					$useScriptFile = $match;
+					break;
+				} else if(preg_match('/^(.+)=true$/', $match, $mat)) {
+					$useScriptFile = $mat[1];
+					break;
+				}
+			}
+		}
+		
+		$useScriptFile = preg_replace('/[\/?]+$/', '/'.$defaultFile, $useScriptFile);
+		
+		$scriptFilePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+		if(!file_exists($scriptFilePath)) {
+			$useScriptFile = $notFoundFile;
+			$notFoundPath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+			if(file_exists($notFoundPath)) {
+				$scriptFilePath = $notFoundPath;
+			} else {
+				$scriptFilePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
+			}
+		} else if(!in_array($useScriptFile, self::$scripts)) {
+			$useScriptFile = $notAccessibleFile;
+			$notAccessiblePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
+			if(file_exists($notAccessiblePath)) {
+				$scriptFilePath = $notAccessiblePath;
+			} else {
+				$scriptFilePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
+			}
+		}
+	
+		$scriptFileURL = PathManager::convertPathToURL($scriptFilePath);
+		
 		// $_SESSION['jcLoaded'] is set to true in jcloaded.php via Ajax once app is loaded
 		if(isset($_SESSION['jcLoaded']) && $unchanged) {
 			foreach(self::$cssFiles as $cssURL) {
@@ -67,50 +113,7 @@ class Router {
 				self::embedScript($scriptURL);
 			}
 			
-			self::embedScript(JC_FRAMEWORK_URL.'jcombo.js');
-			
-			$siScriptPath = JC_APPDATA_DIR.'serverinterfaces.js';
-				
-			$defaultFile = JC_MAIN_SCRIPT;
-			$notFoundFile = JC_NOT_FOUND_SCRIPT;
-			$notAccessibleFile = JC_NOT_ACCESSIBLE_SCRIPT;
-			
-			$useScriptFile = $defaultFile;
-			
-			if(preg_match_all('/(?<=[?&])[^?&]+/', $_SERVER['REQUEST_URI'], $matches, PREG_PATTERN_ORDER, 0)) {
-				foreach($matches[0] as $match) {
-					if(strpos($match, '=', 0) === false) {
-						$useScriptFile = $match;
-						break;
-					} else if(preg_match('/^(.+)=true$/', $match, $mat)) {
-						$useScriptFile = $mat[1];
-						break;
-					}
-				}
-			}
-			
-			$useScriptFile = preg_replace('/[\/?]+$/', '/'.$defaultFile, $useScriptFile);
-			
-			$filePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-			if(!file_exists($filePath)) {
-				$useScriptFile = $notFoundFile;
-				$notFoundPath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-				if(file_exists($notFoundPath)) {
-					$filePath = $notFoundPath;
-				} else {
-					$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
-				}
-			} else if(!in_array($useScriptFile, self::$scripts)) {
-				$useScriptFile = $notAccessibleFile;
-				$notAccessiblePath = JC_SCRIPTS_DIR.$useScriptFile.".js";
-				if(file_exists($notAccessiblePath)) {
-					$filePath = $notAccessiblePath;
-				} else {
-					$filePath = JC_FRAMEWORK_DIR."scripts/".$useScriptFile.".js";
-				}
-			}
-		
-			$fileURL = PathManager::convertPathToURL($filePath);
+			self::embedScript($jComboScriptURL);
 			
 			$initCode = '$j.init("'.self::$applicationDirPath.'", "'.JC_FRAMEWORK_URL.'", "'.JC_LIB_JS_URL.'", "'.JC_FRAMEWORK_STYLES_URL.'", "'.JC_SERVER_GATEWAY_URL.'", "'.JC_SCRIPTS_URL.'", "'.JC_STYLES_URL.
 					'", "'.JC_TEMPLATES_URL.'", "'.JC_ASSETS_URL.'", "'.JC_FILES_URL.'");';
@@ -118,18 +121,18 @@ class Router {
 			$interfaceDesc = '$j.serverInterfaceDescription = '.ServerInterfaceDescriptor::getInterfaceDesc().';';
 			$storedInterfaceDesc = '';
 			
-			if(file_exists($siScriptPath)) {
-				$storedInterfaceDesc = file_get_contents($siScriptPath);
+			if(file_exists($serverInterfacesPath)) {
+				$storedInterfaceDesc = file_get_contents($serverInterfacesPath);
 			} else {
 				$storedInterfaceDesc = '';
 			}
 			
 			if($storedInterfaceDesc != $interfaceDesc) {
-				file_put_contents($siScriptPath, $interfaceDesc, LOCK_EX);
+				file_put_contents($serverInterfacesPath, $interfaceDesc, LOCK_EX);
 			}
 			
-			self::embedScript(PathManager::convertPathToURL($siScriptPath));	
-			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$fileURL.'");</script>';
+			self::embedScript($serverInterfacesURL);	
+			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$scriptFileURL.'");</script>';
 			self::$headCode .= "\n";
 		} else {
 			$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
@@ -138,6 +141,9 @@ class Router {
 			}
 			
 			$resources = array_merge(self::$cssFiles, self::$jsFiles);
+			$resources[] = $jComboScriptURL;
+			$resources[] = $serverInterfacesURL;
+			$resources[] = $scriptFileURL;
 			$loadResources = str_replace('\/', '/', json_encode($resources));
 			
 			// this is to keep track of changes made to code in the middle a user's session

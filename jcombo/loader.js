@@ -60,6 +60,61 @@ var $loader = {
 		$loader._loadDeepResourceToCache(url, successCallback, errorCallback);
 	},
 	
+	abortLoadAll: function() {
+		$loader._allowLoadAll = false;
+	},
+	
+	loadAll: function(successCallback, errorCallback) {
+		if($loader._allowLoadAll) {
+			if(successCallback) {
+				$loader._allLoadCallback = successCallback;
+			}
+			if(errorCallback) {
+				$loader._loadFailCallback = errorCallback;
+			}
+			
+			if($loader._resourcesLoaded.length < $loader._resources.length) {
+				$loader.loadResource($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail, true);
+			} else {
+				if($loader._allLoadCallback) {
+					$loader._allLoadCallback($loader._resourcesLoaded);
+				}
+			}
+		} else {
+			$loader._allowLoadAll = true;
+		}
+	},
+	
+	_loadAllFail: function() {
+		if($loader._loadFailCallback) {
+			$loader._loadFailCallback($loader._arrayExclude($loader._resources, $loader._resourcesLoaded));
+		} else {
+			throw 'Exception: One or more resources could not be loaded';
+		}
+	},
+	
+	finish: function() {
+		var jcLoadedScript = $loader._frameworkURL + "core/jcloaded.php";
+		
+		var xmlhttp = $loader._getHTTPReqObject();
+		xmlhttp.open("GET", jcLoadedScript, true);
+		xmlhttp.onreadystatechange = function() {
+			if(xmlhttp.readyState == 4) {
+				if(xmlhttp.status == 200) {
+					// refresh Router - Now that the script is in cache, Router will launch the app
+					location.href = location.href;
+				} else {
+					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
+						// try again
+						$loader.finish();
+					}
+				}
+			}
+		}
+		// set the jcLoaded session variable to true to inform Router that the app is loaded
+		xmlhttp.send();
+	},
+	
 	ajax: function(settings) {
 		var type;
 		if(settings.type) {
@@ -231,57 +286,22 @@ var $loader = {
 		return functionCalls;
 	},
 	
-	abortLoadAll: function() {
-		$loader._allowLoadAll = false;
-	},
-	
-	loadAll: function(successCallback, errorCallback) {
-		if($loader._allowLoadAll) {
-			if(successCallback) {
-				$loader._allLoadCallback = successCallback;
-			}
-			if(errorCallback) {
-				$loader._loadFailCallback = errorCallback;
-			}
-			
-			if($loader._resourcesLoaded.length < $loader._resources.length) {
-				$loader.loadResource($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail, true);
-			} else {
-				if($loader._allLoadCallback) {
-					$loader._allLoadCallback($loader._resourcesLoaded);
-				}
-			}
-		} else {
-			$loader._allowLoadAll = true;
+	_arrayExclude: function(array, excludeArray) {
+		var excl = [];
+		var mapExcl = {};
+		var i;
+		var len = excludeArray.length;
+		for(i=0; i<len; i++) {
+			mapExcl[excludeArray[i]] = true;
 		}
-	},
-	
-	_loadAllFail: function() {
-		if($loader._loadFailCallback) {
-			$loader._loadFailCallback($loader._resources, $loader._resourcesLoaded);
-		}
-	},
-	
-	finish: function() {
-		var jcLoadedScript = $loader._frameworkURL + "core/jcloaded.php";
 		
-		var xmlhttp = $loader._getHTTPReqObject();
-		xmlhttp.open("GET", jcLoadedScript, true);
-		xmlhttp.onreadystatechange = function() {
-			if(xmlhttp.readyState == 4) {
-				if(xmlhttp.status == 200) {
-					// refresh Router - Now that the script is in cache, Router will launch the app
-					location.href = location.href;
-				} else {
-					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
-						// try again
-						$loader.finish();
-					}
-				}
+		len = array.length;
+		for(i=0; i<len; i++) {
+			if(!mapExcl[array[i]]) {
+				excl.push(array[i]);
 			}
 		}
-		// set the jcLoaded session variable to true to inform Router that the app is loaded
-		xmlhttp.send();
+		return excl;
 	},
 	
 	_getHTTPReqObject: function() {
