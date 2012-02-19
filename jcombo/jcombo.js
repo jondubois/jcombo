@@ -143,7 +143,6 @@ var $j = {
 		_quoteRegex: /"([^"]*)"/,
 		_curFileDir: /^(.*)\//,
 		
-		
 		/**
 			Include a script from the application's script directory into the current script.
 		*/
@@ -509,6 +508,7 @@ var $j = {
 						type: "GET",
 						dataType: "html",
 						cache: true,
+						async: true,
 						success: function(data) {
 							$j.grab._resourcesLoadedMap[url] = true;
 							$j.grab._deepResourcesLoaded[rootURL].push(url);
