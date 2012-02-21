@@ -243,7 +243,7 @@ var $j = {
 			if(jRequest) {				
 				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "error") {
 					
-					$j.grab._loadedTemplates[resourceName] = {status: "loading", response: null, callbacks:new Array(jRequest)};
+					$j.grab._loadedTemplates[resourceName] = {status: "loading", response: null, callbacks: new Array(jRequest)};
 					
 					var cacheTemplate;
 					if(jRequest.cache) {
@@ -305,7 +305,7 @@ var $j = {
 					var response = $j.grab._loadedTemplates[resourceName].response;
 					jRequest.success(response.data, response.textStatus, response.jqXHR);
 				}
-			} else {		
+			} else {	
 				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "loading" ||
 						$j.grab._loadedTemplates[resourceName].status == "error") {
 							

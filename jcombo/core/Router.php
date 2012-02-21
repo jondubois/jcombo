@@ -7,10 +7,12 @@ class Router {
 	private static $serverInterfaces;
 	private static $logErrors = true;
 	private static $jsFiles;
+	private static $jsPluginFiles;
 	private static $cssFiles;
 	private static $error = false;
 	private static $headCode = '';
 	private static $bodyCode = '';
+	const INCLUDE_FILE = 'include.conf';
 	
 	private static $applicationDirPath;
 	
@@ -41,9 +43,12 @@ class Router {
 		self::$jsFiles = array();
 		self::$cssFiles = array();
 		
+		self::$jsPluginFiles = array();
+		
 		self::includeCSS('jcombo');
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
+		self::includeDefaultPluginsJS();
 	}
 	
 	/**
@@ -131,7 +136,12 @@ class Router {
 				file_put_contents($serverInterfacesPath, $interfaceDesc, LOCK_EX);
 			}
 			
-			self::embedScript($serverInterfacesURL);	
+			self::embedScript($serverInterfacesURL);
+			
+			foreach(self::$jsPluginFiles as $scriptURL) {
+				self::embedScript($scriptURL);
+			}
+			
 			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$scriptFileURL.'");</script>';
 			self::$headCode .= "\n";
 		} else {
@@ -164,7 +174,7 @@ class Router {
 	* @throws Throws an exception if one or more default libraries could not be found.
 	*/
 	public static function includeDefaultLibsJS() {
-		$includesFileName = 'includes.conf';
+		$includesFileName = self::INCLUDE_FILE;
 		$includesFile = JC_LIB_JS_DIR.$includesFileName;
 		if(file_exists($includesFile)) {
 			$fileContents = file_get_contents($includesFile);
@@ -200,6 +210,41 @@ class Router {
 		
 		foreach($libs as $scriptPath) {
 			self::$jsFiles[] = PathManager::convertPathToURL($scriptPath);
+		}
+	}
+	
+	public static function includeDefaultPluginsJS() {
+		$includesFileName = self::INCLUDE_FILE;
+		$includesFile = JC_PLUGIN_JS_DIR.$includesFileName;
+		if(file_exists($includesFile)) {
+			$fileContents = file_get_contents($includesFile);
+			if($fileContents !== false) {
+				$includes = explode(',', $fileContents);
+				try {
+					foreach($includes as $include) {
+						$inc = trim($include);
+						if($inc) {
+							self::includePluginJS($inc);
+						}
+					}
+				} catch(Exception $e) {
+					throw new Exception('Failed to load default plugin: '.$e->getMessage().' as referenced in '.$includesFile);
+				}
+			} else {
+				throw new Exception('System could not read '.$includesFileName.' in the plugins/js/ directory');	
+			}
+		}
+	}
+	
+	public static function includePluginJS($plugin) {
+		$plugins = glob(JC_PLUGIN_JS_DIR.$plugin.'.js');
+		
+		if(count($plugins) < 1) {
+			throw new Exception('System could not load the JS plugin "'.$plugin.'" - Include path may have been specified incorrectly');	
+		}
+		
+		foreach($plugins as $scriptPath) {
+			self::$jsPluginFiles[] = PathManager::convertPathToURL($scriptPath);
 		}
 	}
 	

@@ -102,7 +102,7 @@ var $loader = {
 			if(xmlhttp.readyState == 4) {
 				if(xmlhttp.status == 200) {
 					// refresh Router - Now that the script is in cache, Router will launch the app
-					location.href = location.href;
+					location.href = location.href.replace(/[#][^\/]*$/, '');
 				} else {
 					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
 						// try again

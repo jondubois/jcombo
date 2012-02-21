@@ -14,6 +14,9 @@ define('JC_LIB_PHP_DIR', JC_FRAMEWORK_DIR.'libs/php/');
 // define the javascript addon library directory
 define('JC_LIB_JS_DIR', JC_FRAMEWORK_DIR.'libs/js/');
 
+// define the javascript addon library directory
+define('JC_PLUGIN_JS_DIR', JC_FRAMEWORK_DIR.'plugins/js/');
+
 // define the framework's default styles directory
 define('JC_FRAMEWORK_STYLES_DIR', JC_FRAMEWORK_DIR.'styles/');
 
