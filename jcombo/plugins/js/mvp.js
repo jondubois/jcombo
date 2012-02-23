@@ -3,7 +3,6 @@ $j.mvp = {
 	_mainView: null,
 	init: function() {
 		$j.mvp._mainView = new $j.mvp.View('{{root}}');
-		$(document.body).html($j.mvp._mainView.toString());
 	},
 	
 	setMainView: function(view) {
@@ -12,6 +11,7 @@ $j.mvp = {
 		}
 		
 		$j.mvp._mainView.setContent('root', view);
+		$(document.body).html($j.mvp._mainView.toString());
 	},
 	
 	generateID: function() {
