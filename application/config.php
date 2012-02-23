@@ -1,9 +1,9 @@
 <?php
 /* 
-	Configuration fle for JCombo application.
+	Configuration fle for jCombo application.
 */
 
-// define the JCombo application's root directory
+// define the jCombo application's root directory
 define('JC_APPLICATION_DIR', dirname(__FILE__).'/');
 
 // define the appdata directory

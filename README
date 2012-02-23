@@ -1,19 +1,19 @@
-Project: JCombo
+Project: jCombo
 Website: http://jcombo.com/
 Author: Jonathan Gros-Dubois
 
 
 ------- Intro -------
 
-JCombo attempts to offer an easy and flexible method of integrating
-server-side and client-side logic. JCombo is designed to work with just about any web application architecture such as MVC, MVP, MVVM...
+jCombo attempts to offer an easy and flexible method of integrating
+server-side and client-side logic. jCombo is designed to work with just about any web application architecture such as MVC, MVP, MVVM...
 
-JCombo bridges the server and client layers through 'server interfaces' which allow data that are stored on the 
+jCombo bridges the server and client layers through 'server interfaces' which allow data that are stored on the 
 server-side to be easily retrieved and manipulated in JavaScript. These interfaces can also allow the developer to
 make client-side use of functionality that is otherwise exclusive to the serverside (E.g. Tracking sessions, creating files on the server, etc...)
 
 Effectively, server interfaces offer client-side developers a layer of abstraction when dealing with underlying server-side functionality.
-JCombo also captures all server-side errors and exceptions and throws them on the client side so you can easily see them from your browser console.
-For more info on how to use JCombo please visit http://jcombo.com/.
+jCombo also captures all server-side errors and exceptions and throws them on the client side so you can easily see them from your browser console.
+For more info on how to use jCombo please visit http://jcombo.com/.
 
-JCombo is licensed under the MIT License (see license_mit.txt) with the exception of the Bootstrap library which is licensed under the Apache License 2.0 (see license_apache.txt).
+jCombo is licensed under the MIT License (see license_mit.txt) with the exception of the Bootstrap library which is licensed under the Apache License 2.0 (see license_apache.txt).
