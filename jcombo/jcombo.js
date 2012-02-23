@@ -463,10 +463,10 @@ var $j = {
 					rootURL = url;
 					$j.grab._resources.push(url);
 					$j.grab._deepResources[rootURL] = [];
+					$j.grab._deepResources[rootURL].push(url);
+					
 					$j.grab._deepResourcesLoaded[rootURL] = [];
 				}
-				
-				$j.grab._deepResources[rootURL].push(url);
 				
 				if(/[.](png|jpg|gif|bmp|wbm)$/.test(url)) {
 					// images
@@ -507,14 +507,13 @@ var $j = {
 							if(/[.]css$/.test(url)) {
 								urls = $j.grab._parseDeepCSSURLs(data, url);
 								
-								var i, curURL;
+								var i;
 								var len = urls.length;
 								for(i=0; i<len; i++) {
-									curURL = urls[i];
-									
-									if(!$j.grab._resourcesLoadedMap[curURL]) {
-										$j.grab._loadDeepResourceToCache(curURL, successCallback, errorCallback, rootURL);
-									}
+									$j.grab._deepResources[rootURL].push(urls[i]);
+								}
+								for(i=0; i<len; i++) {
+									$j.grab._loadDeepResourceToCache(urls[i], successCallback, errorCallback, rootURL);
 								}
 							}
 							

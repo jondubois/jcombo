@@ -27,6 +27,10 @@ var $loader = {
 
 	setLoader: function(loader) {
 		$loader._loader = loader;
+		
+		if(!$loader._waitForReadyInterval) {
+			$loader._waitForReadyInterval = setInterval($loader._waitForReady, 20);
+		}
 	},
 	
 	init: function(frameworkURL, routToScriptURL, loadScriptURL, resources, appDefinition, skipPreload) {
@@ -56,12 +60,10 @@ var $loader = {
 		
 		if(skipPreload) {
 			$loader._skipPreload = true;
-			$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
+			$loader._waitForReadyInterval = setInterval($loader._waitForReady, 20);
 		} else {
 			$loader._skipPreload = false;
-			$loader.scriptTag(loadScriptURL, 'text/javascript', null, function() {
-				$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
-			});
+			$loader.scriptTag(loadScriptURL, 'text/javascript');
 		}
 	},
 	
@@ -75,7 +77,9 @@ var $loader = {
 		if(head && document.body) {
 			clearInterval($loader._waitForReadyInterval);
 			if($loader._skipPreload) {
-				$loader._embedAllResources();
+				$loader.loadAll(function() {
+					$loader._embedAllResources();
+				});
 			} else {
 				$loader._startLoading();
 			}
@@ -83,11 +87,7 @@ var $loader = {
 	},
 	
 	_startLoading: function() {
-		if($loader._loader) {
-			$loader._loader.start($loader._frameworkURL, $loader._resources);
-		} else {
-			throw "The loader object has not been set - Use the $loader.setLoader() method to set a loader object.";
-		}
+		$loader._loader.start($loader._frameworkURL, $loader._resources);
 	},
 	
 	_embedAllResources: function() {
@@ -107,23 +107,6 @@ var $loader = {
 		}
 	},
 	
-	_loadAndEmbedResource: function(url, successCallback, errorCallback) {
-		$loader._loadDeepResourceToCache(url, function() {
-			if(url == $loader._routToScriptURL) {
-				successCallback(url);
-			} else if(/[.]js$/.test(url)) {
-				$loader.scriptTag(url, 'text/javascript', null, function() {
-					successCallback(url);
-				});
-			} else if(/[.]css$/.test(url)) {
-				$loader.linkTag(url, 'text/css', 'stylesheet');
-				successCallback(url);
-			} else {
-				successCallback(url);
-			}
-		}, errorCallback);
-	},
-	
 	abortLoadAll: function() {
 		$loader._allowLoadAll = false;
 	},
@@ -138,7 +121,7 @@ var $loader = {
 			}
 			
 			if($loader._resourcesLoaded.length < $loader._resources.length) {
-				$loader._loadAndEmbedResource($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail, true);
+				$loader._loadDeepResourceToCache($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail);
 			} else {
 				if($loader._allLoadCallback) {
 					$loader._allLoadCallback($loader._resourcesLoaded);
@@ -166,8 +149,7 @@ var $loader = {
 			if(xmlhttp.readyState == 4) {
 				if(xmlhttp.status == 200) {
 					// refresh Router - Now that the script is in cache, Router will launch the app
-					//location.href = location.href.replace(/[#][^\/]*$/, '');
-					$loader.scriptTag($loader._routToScriptURL, 'text/javascript');
+					$loader._embedAllResources();
 				} else {
 					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
 						// try again

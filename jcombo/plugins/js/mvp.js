@@ -1,6 +1,7 @@
 $j.mvp = {
 	_idCount: 0,
 	_mainView: null,
+	
 	init: function() {
 		$j.mvp._mainView = new $j.mvp.View('{{root}}');
 	},
@@ -206,9 +207,7 @@ $j.mvp = {
 	}
 };
 
-$(document).ready(function() {
-	$j.mvp.init();
-});
+$j.mvp.init();
 
 $j.grab.view = function(templateName, jRequest) {
 	if(jRequest) {
