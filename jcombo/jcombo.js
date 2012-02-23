@@ -15,37 +15,28 @@ var $j = {
 	_appTemplatesURL: null,
 	_cacheSeverCalls: false,
 	_cacheTemplates: true,
-	_isWindowLoaded: null,
 	_readyCallbacks: null,
     
-	init: function(appDirPath, frameworkURL, jsLibsURL, frameworkStylesURL, serverGatewayURL, appScriptsURL, appStylesURL, appTemplatesURL, appAssetsURL, appFilesURL) {
-		$j._appDirPath = appDirPath;
-		$j._frameworkURL = frameworkURL;
-		$j._jsLibsURL = jsLibsURL;
-		$j._frameworkStylesURL = frameworkStylesURL;
-		$j._serverGatewayURL = serverGatewayURL;
+	init: function(appDefinition) {
+		$j._appDirPath = appDefinition.appDirPath;
+		$j._frameworkURL = appDefinition.frameworkURL;
+		$j._jsLibsURL = appDefinition.jsLibsURL;
+		$j._frameworkStylesURL = appDefinition.frameworkStylesURL;
+		$j._serverGatewayURL = appDefinition.serverGatewayURL;
 		$j._scriptsRouterURL = location.href.replace(/\?.*/, '');
-		$j._appScriptsURL = appScriptsURL;
-		$j._appStylesURL = appStylesURL;
-		$j._appTemplatesURL = appTemplatesURL;
-		$j._appAssetsURL = appAssetsURL;
-		$j._appFilesURL = appFilesURL;
+		$j._appScriptsURL = appDefinition.appScriptsURL;
+		$j._appStylesURL = appDefinition.appStylesURL;
+		$j._appTemplatesURL = appDefinition.appTemplatesURL;
+		$j._appAssetsURL = appDefinition.appAssetsURL;
+		$j._appFilesURL = appDefinition.appFilesURL;
 		$j._readyCallbacks = [];
-		$j._isWindowLoaded = false;
-		
-		$(window).load(function() {
-			$j._isWindowLoaded = true;
-			if($j._readyCallbacks.length > 0 && !$j.grab.isGrabbing()) {
-				$j._execReadyCallbacks();
-			}
-		});
 	},
 	
 	/**
 		Bind a callback function to jCombo's ready event. The specified function will be called when jCombo is ready to begin processing.
 	*/
 	ready: function(callback) {
-		if($j._isWindowLoaded && !$j.grab.isGrabbing()) {
+		if(!$j.grab.isGrabbing()) {
 			callback();
 		} else {
 			$j._readyCallbacks.push(callback);
@@ -53,7 +44,7 @@ var $j = {
 	},
 	
 	_triggerReady: function() {
-		if($j._isWindowLoaded && $j._readyCallbacks.length > 0) {
+		if($j._readyCallbacks.length > 0) {
 			$j._execReadyCallbacks();
 		}
 	},

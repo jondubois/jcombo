@@ -57,15 +57,22 @@ class Router {
 	public static function exec() {
 		self::requiresRouterInit();
 		
-		$unchanged = false;
-		if(isset($_SESSION['loadedFiles'])) {
-			$unchanged = self::isSubset($_SESSION['loadedFiles']['js'], self::$jsFiles) && 
-					self::isSubset($_SESSION['loadedFiles']['css'], self::$cssFiles);
-		}
-		
 		$jComboScriptURL = JC_FRAMEWORK_URL.'jcombo.js';
 		$serverInterfacesPath = JC_APPDATA_DIR.'serverinterfaces.js';
 		$serverInterfacesURL = PathManager::convertPathToURL($serverInterfacesPath);
+		$initScriptURL = JC_FRAMEWORK_URL.'core/init.js';
+		
+		$jsIncludes = self::$jsFiles;
+		$jsIncludes[] = $jComboScriptURL;
+		$jsIncludes[] = $serverInterfacesURL;
+		$jsIncludes[] = $initScriptURL;
+		$jsIncludes = array_merge($jsIncludes, self::$jsPluginFiles);
+		
+		$unchanged = false;
+		if(isset($_SESSION['loadedFiles'])) {
+			$unchanged = self::isSubset($_SESSION['loadedFiles']['js'], $jsIncludes) && 
+					self::isSubset($_SESSION['loadedFiles']['css'], self::$cssFiles);
+		}
 		
 		$defaultFile = JC_MAIN_SCRIPT;
 		$notFoundFile = JC_NOT_FOUND_SCRIPT;
@@ -108,6 +115,48 @@ class Router {
 	
 		$scriptFileURL = PathManager::convertPathToURL($scriptFilePath);
 		
+		$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
+		if(!file_exists($loaderPath)) {
+			$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";
+		}
+		
+		$interfaceDesc = '$j.serverInterfaceDescription = '.ServerInterfaceDescriptor::getInterfaceDesc().';';
+		$storedInterfaceDesc = '';
+		
+		if(file_exists($serverInterfacesPath)) {
+			$storedInterfaceDesc = file_get_contents($serverInterfacesPath);
+		} else {
+			$storedInterfaceDesc = '';
+		}
+		
+		if($storedInterfaceDesc != $interfaceDesc) {
+			file_put_contents($serverInterfacesPath, $interfaceDesc, LOCK_EX);
+		}
+		
+		// this is to keep track of changes made to code in the middle a user's session
+		$_SESSION['loadedFiles'] = array('js'=>$jsIncludes, 'css'=>self::$cssFiles);
+		
+		self::embedScript(JC_FRAMEWORK_URL.'loader.js');
+		
+		$loadScriptURL = PathManager::convertPathToURL($loaderPath);
+		
+		$includeResoucesArg = str_replace('\/', '/', json_encode(array_merge(self::$cssFiles, $jsIncludes)));
+		
+		$appInitArgs = '{appDirPath:"'.self::$applicationDirPath.'", frameworkURL:"'.JC_FRAMEWORK_URL.'", jsLibsURL:"'.JC_LIB_JS_URL.
+					'", frameworkStylesURL:"'.JC_FRAMEWORK_STYLES_URL.'", serverGatewayURL:"'.JC_SERVER_GATEWAY_URL.'", appScriptsURL:"'.JC_SCRIPTS_URL.
+					'", appStylesURL:"'.JC_STYLES_URL.'", appTemplatesURL:"'.JC_TEMPLATES_URL.'", appAssetsURL:"'.JC_ASSETS_URL.'", appFilesURL:"'.JC_FILES_URL.'"}';
+		
+		
+		if(isset($_SESSION['jcLoaded']) && $unchanged) {
+			$skipPreload = 'true';
+		} else {
+			$skipPreload = 'false';
+		}
+		
+		self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", "'.$scriptFileURL.'", "'.$loadScriptURL.'", '.$includeResoucesArg.', '.$appInitArgs.', '.$skipPreload.');</script>';
+		self::$headCode .= "\n";
+			
+		/*
 		// $_SESSION['jcLoaded'] is set to true in jcloaded.php via Ajax once app is loaded
 		if(isset($_SESSION['jcLoaded']) && $unchanged) {
 			foreach(self::$cssFiles as $cssURL) {
@@ -165,6 +214,7 @@ class Router {
 			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$loadResources.');</script>';
 			self::$headCode .= "\n";
 		}
+		*/
 	}
 	
 	/*

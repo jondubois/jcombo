@@ -1,0 +1,2 @@
+RewriteEngine on
+RewriteRule ^(.*\.(js|css))$ appdata/resourcecacher.php?resource=$1 [L]

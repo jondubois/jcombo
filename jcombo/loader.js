@@ -1,10 +1,14 @@
 var $loader = {
-	IE: /*@cc_on!@*/false,
+	_ie: false,
+	_ieVersion: null,
 	MAX_ATTEMPTS: 3,
+	_embedCounter: null,
 	
 	_loader: null,
 	_frameworkURL: null,
+	_routToScriptURL: null,
 	
+	_appDefinition: null,
 	_resources: null,
 	_resourcesLoaded: null,
 	
@@ -19,24 +23,50 @@ var $loader = {
 	_loadFailCallback: null,
 	
 	_allowLoadAll: null,
+	_skipPreload: null,
 
 	setLoader: function(loader) {
 		$loader._loader = loader;
 	},
 	
-	init: function(frameworkURL, resources) {
+	init: function(frameworkURL, routToScriptURL, loadScriptURL, resources, appDefinition, skipPreload) {
 		$loader._frameworkURL = frameworkURL;
+		$loader._routToScriptURL = routToScriptURL;
+		
+		$loader._appDefinition = appDefinition;
+				
 		$loader._resources = resources;
+		$loader._resources.push($loader._routToScriptURL);
+		
 		$loader._resourcesLoaded = [];
 		$loader._deepResources = {};
 		$loader._deepResourcesLoaded = {};
 		$loader._resourcesLoadedMap = {};
 		$loader._allowLoadAll = true;
 		
-		$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
 		$loader._allLoadCallback = null;
 		$loader._loadFailCallback = null;
 		$loader._attempts = 0;
+		$loader._embedCounter = 0;
+		
+		if(/MSIE (\d+\.\d+);/.test(navigator.userAgent)) {
+			$loader._ie = true;
+			$loader._ieVersion = new Number(RegExp.$1)
+		}
+		
+		if(skipPreload) {
+			$loader._skipPreload = true;
+			$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
+		} else {
+			$loader._skipPreload = false;
+			$loader.scriptTag(loadScriptURL, 'text/javascript', null, function() {
+				$loader._waitForReadyInterval = setInterval($loader._waitForReady, 10);
+			});
+		}
+	},
+	
+	getAppDefinition: function() {
+		return $loader._appDefinition;
 	},
 	
 	_waitForReady: function() {
@@ -44,7 +74,11 @@ var $loader = {
 		
 		if(head && document.body) {
 			clearInterval($loader._waitForReadyInterval);
-			$loader._startLoading();
+			if($loader._skipPreload) {
+				$loader._embedAllResources();
+			} else {
+				$loader._startLoading();
+			}
 		}
 	},
 	
@@ -56,8 +90,38 @@ var $loader = {
 		}
 	},
 	
-	loadResource: function(url, successCallback, errorCallback) {
-		$loader._loadDeepResourceToCache(url, successCallback, errorCallback);
+	_embedAllResources: function() {
+		if($loader._embedCounter < $loader._resources.length) {
+			var url = $loader._resources[$loader._embedCounter];
+			
+			if(/[.]js$/.test(url)) {
+				$loader.scriptTag(url, 'text/javascript', null, function() {
+					$loader._embedCounter++;
+					$loader._embedAllResources();
+				});
+			} else if(/[.]css$/.test(url)) {
+				$loader.linkTag(url, 'text/css', 'stylesheet');
+				$loader._embedCounter++;
+				$loader._embedAllResources();
+			}
+		}
+	},
+	
+	_loadAndEmbedResource: function(url, successCallback, errorCallback) {
+		$loader._loadDeepResourceToCache(url, function() {
+			if(url == $loader._routToScriptURL) {
+				successCallback(url);
+			} else if(/[.]js$/.test(url)) {
+				$loader.scriptTag(url, 'text/javascript', null, function() {
+					successCallback(url);
+				});
+			} else if(/[.]css$/.test(url)) {
+				$loader.linkTag(url, 'text/css', 'stylesheet');
+				successCallback(url);
+			} else {
+				successCallback(url);
+			}
+		}, errorCallback);
 	},
 	
 	abortLoadAll: function() {
@@ -74,7 +138,7 @@ var $loader = {
 			}
 			
 			if($loader._resourcesLoaded.length < $loader._resources.length) {
-				$loader.loadResource($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail, true);
+				$loader._loadAndEmbedResource($loader._resources[$loader._resourcesLoaded.length], function(){$loader.loadAll()}, $loader._loadAllFail, true);
 			} else {
 				if($loader._allLoadCallback) {
 					$loader._allLoadCallback($loader._resourcesLoaded);
@@ -102,7 +166,8 @@ var $loader = {
 			if(xmlhttp.readyState == 4) {
 				if(xmlhttp.status == 200) {
 					// refresh Router - Now that the script is in cache, Router will launch the app
-					location.href = location.href.replace(/[#][^\/]*$/, '');
+					//location.href = location.href.replace(/[#][^\/]*$/, '');
+					$loader.scriptTag($loader._routToScriptURL, 'text/javascript');
 				} else {
 					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
 						// try again
@@ -141,6 +206,89 @@ var $loader = {
 			}
 		}
 		xmlhttp.send();
+	},
+	
+	/**
+		Insert a script tag into the current document as it is being constructed.
+		The id & callback parameters are optional.
+	*/
+	scriptTag: function(url, type, id, callback) {	
+		var head = document.getElementsByTagName('head')[0];
+	
+		var script = document.createElement('script');
+		
+		if(callback) {
+			if(!$loader._ie || $loader._ieVersion > 8) {
+				script.onload = function() {callback(url);};
+			} else {
+				script.onreadystatechange = function() {callback(url);};
+			}
+		}
+		
+		if(id) {
+			script.id = id;
+		}
+		script.type = type;
+		script.src = url;
+		
+		head.appendChild(script);
+	},
+	
+	/** 
+		Insert a link tag into the current document as it is being constructed.
+		The id & callback parameters are optional.
+	*/
+	linkTag: function(url, type, rel, id) {
+		var head = document.getElementsByTagName('head')[0];
+		
+		var curScripts = document.getElementsByTagName('script');
+		var firstScript = null;
+		var firstIndex = 0;
+		
+		if(curScripts) {
+			var len = curScripts.length;
+			while(firstIndex < len && curScripts[firstIndex].parentNode != head) {
+				firstIndex++;
+			}
+			if(firstIndex < len) {
+				firstScript = curScripts[firstIndex];
+			}
+		}
+		
+		var link = document.createElement('link');
+		
+		if(id) {
+			link.id = id;
+		}
+		link.rel = rel;
+		link.type = type;
+		link.href = url;
+		
+		if(firstScript) {
+			head.insertBefore(link, firstScript);
+		} else {
+			var curLinks = document.getElementsByTagName('link');
+			var lastLink = null;
+			var lastIndex = curLinks.length - 1;
+			if(curLinks) {
+				while(lastIndex >= 0 && curLinks[lastIndex].parentNode != head) {
+					lastIndex--;
+				}
+				if(lastIndex >= 0) {
+					lastLink = curLinks[lastIndex];
+				}
+			}
+			
+			if(lastLink) {
+				if(lastLink.nextSibling) {
+					head.insertBefore(link, lastLink.nextSibling);
+				} else {
+					head.appendChild(link);
+				}
+			} else {
+				head.appendChild(link);
+			}
+		}
 	},
 	
 	_loadDeepResourceToCache: function(url, successCallback, errorCallback, rootURL) {
@@ -307,7 +455,7 @@ var $loader = {
 	_getHTTPReqObject: function() {
 		xmlhttp = null;
 		
-		if($loader.IE) {
+		if($loader._ie) {
 			try {
 				xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
 			} catch (exceptionA) {
