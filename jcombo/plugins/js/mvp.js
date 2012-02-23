@@ -10,16 +10,8 @@ $j.mvp = {
 		if(!$j.mvp._mainView) {
 			throw 'DOMNotReadyException: the DOM is not ready - Main view cannot be set';
 		}
-	
+		
 		$j.mvp._mainView.setContent('root', view);
-		/*
-		if(view instanceof $j.mvp.View) {
-			$(document.body).html(view.toString());
-			view.triggerRefresh();
-		} else {
-			$(document.body).html(view);
-		}
-		*/
 	},
 	
 	generateID: function() {
@@ -71,6 +63,7 @@ $j.mvp = {
 				}
 				self._data[index] = value;
 			});
+			
 			self._update();
 		}
 		
@@ -161,19 +154,21 @@ $j.mvp = {
 		}
 		
 		self.triggerRefresh = function() {
-			$.each(self._rebindSelectorMap, function(index, value) {
-				$(index).bind(value.eventType, value.handler);
-			});
-			
-			$.each(self._data, function(index, value) {
-				if(value instanceof $j.mvp.View) {
-					value.triggerRefresh();
-				}
-			});
-			
-			$.each(self._callbacks['refresh'], function(index, value) {
-				value();
-			});
+			if(self._parent) {
+				$.each(self._rebindSelectorMap, function(index, value) {
+					$(index).bind(value.eventType, value.handler);
+				});
+				
+				$.each(self._data, function(index, value) {
+					if(value instanceof $j.mvp.View) {
+						value.triggerRefresh();
+					}
+				});
+				
+				$.each(self._callbacks['refresh'], function(index, value) {
+					value();
+				});
+			}
 		}
 		
 		self._getContent = function(areaName) {
