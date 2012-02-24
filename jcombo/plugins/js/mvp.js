@@ -68,15 +68,11 @@ $j.mvp = {
 			self._update();
 		}
 		
-		self.clearData = function(areaName) {
+		self.clearData = function() {
 			var newData = {};
-			if(areaName) {
-				newData[areaName] = '';
-			} else {
-				$.each(self._data, function(index) {
-					newData[index] = '';
-				});
-			}
+			$.each(self._data, function(index) {
+				newData[index] = '';
+			});
 			self.setData(newData);
 		}
 		
@@ -90,18 +86,14 @@ $j.mvp = {
 			self.setData(data);
 		}
 		
-		self.toString = function() {
-			return self._wrapID(self._getContent());
-		}
-		
 		self.select = function(selector) {
-			var elSelector = "#" + self._id + " " + selector;
+			var elSelector = "." + self._id + " " + selector;
 			self._unbindSelectorMap[elSelector] = true;
 			return $(elSelector);
 		}
 		
 		self.delegate = function(selector, eventType, handler) {
-			$(document.body).delegate("#" + self._id + " " + selector, eventType, handler);
+			$(document.body).delegate("." + self._id + " " + selector, eventType, handler);
 		}
 		
 		self.undelegate = function(selector, eventType, handler) {
@@ -114,14 +106,14 @@ $j.mvp = {
 			}
 			
 			if(!handler) {
-				$(document.body).undelegate("#" + self._id + " " + selector, eventType);
+				$(document.body).undelegate("." + self._id + " " + selector, eventType);
 			} else {
-				$(document.body).undelegate("#" + self._id + " " + selector, eventType, handler);
+				$(document.body).undelegate("." + self._id + " " + selector, eventType, handler);
 			}
 		}
 		
 		self.bind = function(eventType, handler) {
-			var selector = '#' + self._id;
+			var selector = '.' + self._id;
 			self._rebindSelectorMap[selector] = {eventType: eventType, handler: handler};
 			$(selector).bind(eventType, handler);
 		}
@@ -132,7 +124,7 @@ $j.mvp = {
 					return value != handler;
 				});
 			} else {
-				var selector = '#' + self._id;
+				var selector = '.' + self._id;
 				self._rebindSelectorMap[selector] = null;
 				$(selector).unbind(eventType, handler);
 			}
@@ -172,6 +164,10 @@ $j.mvp = {
 			}
 		}
 		
+		self.toString = function() {
+			return self._wrapID(self._getContent());
+		}
+		
 		self._getContent = function(areaName) {
 			if(areaName) {
 				var content = self._data[areaName];
@@ -197,11 +193,11 @@ $j.mvp = {
 		}
 		
 		self._wrapID = function(html) {
-			return '<div id="' + self._id + '">' + html + '</div>'
+			return '<div class="' + self._id + '">' + html + '</div>'
 		}
 		
 		self._update = function() {
-			$('#' + self._id).html(self._getContent());
+			$('.' + self._id).replaceWith(self.toString());
 			self.triggerRefresh();
 		}
 	}
