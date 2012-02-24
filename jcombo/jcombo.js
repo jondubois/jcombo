@@ -468,7 +468,7 @@ var $j = {
 					$j.grab._deepResourcesLoaded[rootURL] = [];
 				}
 				
-				if(/[.](png|jpg|gif|bmp|wbm)$/.test(url)) {
+				if(/[.](png|jpg|gif)$/.test(url)) {
 					// images
 					var img = new Image();
 					img.onload = function() {

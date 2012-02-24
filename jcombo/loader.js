@@ -283,7 +283,7 @@ var $loader = {
 			
 			$loader._deepResources[rootURL].push(url);
 			
-			if(/[.](png|jpg|gif|bmp|wbm)$/.test(url)) {
+			if(/[.](png|jpg|gif)$/.test(url)) {
 				// images
 				var img = new Image();
 				img.onload = function() {
