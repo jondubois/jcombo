@@ -45,7 +45,6 @@ class Router {
 		
 		self::$jsPluginFiles = array();
 		
-		self::includeCSS('jcombo');
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
 		self::includeDefaultPluginsJS();
@@ -155,66 +154,6 @@ class Router {
 		
 		self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", "'.$scriptFileURL.'", "'.$loadScriptURL.'", '.$includeResoucesArg.', '.$appInitArgs.', '.$skipPreload.');</script>';
 		self::$headCode .= "\n";
-			
-		/*
-		// $_SESSION['jcLoaded'] is set to true in jcloaded.php via Ajax once app is loaded
-		if(isset($_SESSION['jcLoaded']) && $unchanged) {
-			foreach(self::$cssFiles as $cssURL) {
-				self::embedCSS($cssURL);
-			}
-		
-			foreach(self::$jsFiles as $scriptURL) {
-				self::embedScript($scriptURL);
-			}
-			
-			self::embedScript($jComboScriptURL);
-			
-			$initCode = '$j.init("'.self::$applicationDirPath.'", "'.JC_FRAMEWORK_URL.'", "'.JC_LIB_JS_URL.'", "'.JC_FRAMEWORK_STYLES_URL.'", "'.JC_SERVER_GATEWAY_URL.'", "'.JC_SCRIPTS_URL.'", "'.JC_STYLES_URL.
-					'", "'.JC_TEMPLATES_URL.'", "'.JC_ASSETS_URL.'", "'.JC_FILES_URL.'");';
-			
-			$interfaceDesc = '$j.serverInterfaceDescription = '.ServerInterfaceDescriptor::getInterfaceDesc().';';
-			$storedInterfaceDesc = '';
-			
-			if(file_exists($serverInterfacesPath)) {
-				$storedInterfaceDesc = file_get_contents($serverInterfacesPath);
-			} else {
-				$storedInterfaceDesc = '';
-			}
-			
-			if($storedInterfaceDesc != $interfaceDesc) {
-				file_put_contents($serverInterfacesPath, $interfaceDesc, LOCK_EX);
-			}
-			
-			self::embedScript($serverInterfacesURL);
-			
-			foreach(self::$jsPluginFiles as $scriptURL) {
-				self::embedScript($scriptURL);
-			}
-			
-			self::$headCode .= '<script id="jComboInitScript" type="text/javascript">'.$initCode.'$j.grab.remoteScript("'.$scriptFileURL.'");</script>';
-			self::$headCode .= "\n";
-		} else {
-			$loaderPath = JC_SCRIPTS_DIR.JC_LOAD_SCRIPT.".js";
-			if(!file_exists($loaderPath)) {
-				$loaderPath = JC_FRAMEWORK_DIR."scripts/".JC_LOAD_SCRIPT.".js";
-			}
-			
-			$resources = array_merge(self::$cssFiles, self::$jsFiles);
-			$resources[] = $jComboScriptURL;
-			$resources[] = $serverInterfacesURL;
-			$resources[] = $scriptFileURL;
-			$loadResources = str_replace('\/', '/', json_encode($resources));
-			
-			// this is to keep track of changes made to code in the middle a user's session
-			$_SESSION['loadedFiles'] = array('js'=>self::$jsFiles, 'css'=>self::$cssFiles);
-			
-			self::embedScript(JC_FRAMEWORK_URL.'loader.js');
-			self::embedScript(PathManager::convertPathToURL($loaderPath));
-			
-			self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", '.$loadResources.');</script>';
-			self::$headCode .= "\n";
-		}
-		*/
 	}
 	
 	/*
