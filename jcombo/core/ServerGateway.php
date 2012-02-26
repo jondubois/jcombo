@@ -8,6 +8,7 @@ if(isset($_POST['appDirPath'])) {
 	define('JC_APP_DIR', urldecode($_POST['appDirPath']));
 } else if(isset($_GET['appDirPath'])) {
 	define('JC_APP_DIR', urldecode($_GET['appDirPath']));
+	ServerGateway::crossDomainMode(true);
 } else {
 	ServerGateway::respondException(new NoApplicationTargetException());
 }
@@ -32,6 +33,23 @@ if(isset($_POST['request'])) {
 class ServerGateway {
 	private static $request;
 	private static $error;
+	private static $crossDomain = false;
+	private static $allowedMap = array();
+	
+	public static function crossDomainMode($bool) {
+		self::$crossDomain = $bool;
+	}
+	
+	public static function allowCrossDomainClass($className) {
+		self::$allowedMap[$className] = true;
+	}
+	
+	public static function allowCrossDomainMethod($className, $methodName) {
+		if(!isset(self::$allowedMap[$className]) || self::$allowedMap[$className] === true) {
+			self::$allowedMap[$className] = array();
+		}
+		self::$allowedMap[$className][$methodName] = true;
+	}
 	
 	/*
 		Executes a jCombo request and returns the result.
@@ -77,8 +95,18 @@ class ServerGateway {
 			$args[] = 'self::$request->params['.$i++.']';	
 		}
 		
-		$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
-
+		if(self::$crossDomain) {
+			$className = self::$request->className;
+			$methodName = self::$request->method;
+			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
+					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
+				$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
+			} else {
+				throw new InvalidCrossDomainCallException($className, $methodName);
+			}
+		} else {
+			$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
+		}
 		self::respond($result);
 	}
 	
@@ -129,6 +157,12 @@ class ServerGateway {
 		header('Content-type: application/json');
 		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).'}';
 		exit;
+	}
+}
+
+class InvalidCrossDomainCallException extends Exception {
+	public function __construct($className, $methodName) {
+		parent::__construct('The method \''.$methodName.'\' of the server interface class \''.$className.'\' cannot be called from a third-party domain.');
 	}
 }
 
