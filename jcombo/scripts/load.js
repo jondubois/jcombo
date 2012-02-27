@@ -2,7 +2,7 @@
 	Default loader for jCombo applications.
 */
 
-var Load = {
+var jLoad = {
 	IE: /*@cc_on!@*/false,
 	_loader: null,
 	_loaderTextBox: null,
@@ -15,30 +15,30 @@ var Load = {
 	_imgLoaded: false,
     
 	start: function(frameworkURL, resources) {
-		Load._frameworkURL = frameworkURL;
-		Load._loaderAnimText = [];
-		Load._browser = navigator.appName;
+		jLoad._frameworkURL = frameworkURL;
+		jLoad._loaderAnimText = [];
+		jLoad._browser = navigator.appName;
 		
-		var imgURL = Load._frameworkURL + 'assets/logo.png';
+		var imgURL = jLoad._frameworkURL + 'assets/logo.png';
 		var textAnim = ['Loading jCombo App', 'Loading jCombo App.', 'Loading jCombo App..', 
 				'Loading jCombo App...', 'Loading jCombo App..', 'Loading jCombo App.'];
 		
-		Load._load(imgURL, 'jCombo', 'http://jcombo.com/', textAnim);
+		jLoad._load(imgURL, 'jCombo', 'http://jcombo.com/', textAnim);
 	},
 	
 	_load: function(loadImageURL, loadImageCaption, loadImageLinkURL, loadTextAnimation) {		
-		Load._loader = document.createElement('div');
-		Load._loader.style.position = 'absolute';
-		Load._loader.style.visibility = 'hidden';
+		jLoad._loader = document.createElement('div');
+		jLoad._loader.style.position = 'absolute';
+		jLoad._loader.style.visibility = 'hidden';
 		
-		Load._loaderCounter = 0;
-		Load._imgLoaded = false;
-		Load.hideLoader();
-		Load._loaderAnimText = loadTextAnimation;
+		jLoad._loaderCounter = 0;
+		jLoad._imgLoaded = false;
+		jLoad.hideLoader();
+		jLoad._loaderAnimText = loadTextAnimation;
 		
 		var startText;
-		if(Load._loaderAnimText.length > 0) {
-			startText = Load._loaderAnimText[0];
+		if(jLoad._loaderAnimText.length > 0) {
+			startText = jLoad._loaderAnimText[0];
 		} else {
 			startText = '';
 		}
@@ -52,82 +52,82 @@ var Load = {
 		imgEl.setAttribute('alt', loadImageCaption);
 		imgEl.setAttribute('border', '0px');
 		
-		Load._loaderTextBox = document.createElement('div');
-		Load._loaderTextBox.style.marginTop = '4px';
-		Load._loaderTextBox.style.fontFamily = 'Arial';
-		Load._loaderTextBox.style.fontSize = '12px';
-		Load._loaderTextBox.style.color = '#666';
+		jLoad._loaderTextBox = document.createElement('div');
+		jLoad._loaderTextBox.style.marginTop = '4px';
+		jLoad._loaderTextBox.style.fontFamily = 'Arial';
+		jLoad._loaderTextBox.style.fontSize = '12px';
+		jLoad._loaderTextBox.style.color = '#666';
 		
-		Load._loaderTextBox.innerHTML = startText;
+		jLoad._loaderTextBox.innerHTML = startText;
 		
 		linkEl.appendChild(imgEl);
-		Load._loader.appendChild(linkEl);
-		Load._loader.appendChild(Load._loaderTextBox);
+		jLoad._loader.appendChild(linkEl);
+		jLoad._loader.appendChild(jLoad._loaderTextBox);
 		
 		var img = new Image();
-		img.onload = Load._ready;
+		img.onload = jLoad._ready;
 		
 		img.src = loadImageURL;
 	},
 	
 	_ready: function() {
-		$loader.loadAll(Load._loaded);
+		$loader.loadAll(jLoad._loaded);
 		
-		if(Load._loader) {
-			document.body.appendChild(Load._loader);
+		if(jLoad._loader) {
+			document.body.appendChild(jLoad._loader);
 			
-			var loadWidth = Load._loader.offsetWidth;
-			var loadHeight = Load._loader.offsetHeight;
+			var loadWidth = jLoad._loader.offsetWidth;
+			var loadHeight = jLoad._loader.offsetHeight;
 			
-			Load._loader.style.top = (Load.getWindowHeight() - loadHeight)/2 + 'px';
-			Load._loader.style.left = (Load.getWindowWidth() - loadWidth)/2 + 'px';
-			Load._loader.style.visibility = 'visible';
+			jLoad._loader.style.top = (jLoad.getWindowHeight() - loadHeight)/2 + 'px';
+			jLoad._loader.style.left = (jLoad.getWindowWidth() - loadWidth)/2 + 'px';
+			jLoad._loader.style.visibility = 'visible';
 			
 			window.onresize = function() {
-				if(Load._loader) {
-					loadWidth = Load._loader.offsetWidth;
-					loadHeight = Load._loader.offsetHeight;
+				if(jLoad._loader) {
+					loadWidth = jLoad._loader.offsetWidth;
+					loadHeight = jLoad._loader.offsetHeight;
 				
-					Load._loader.style.top = (Load.getWindowHeight() - loadHeight)/2 + 'px';
-					Load._loader.style.left = (Load.getWindowWidth() - loadWidth)/2 + 'px';
+					jLoad._loader.style.top = (jLoad.getWindowHeight() - loadHeight)/2 + 'px';
+					jLoad._loader.style.left = (jLoad.getWindowWidth() - loadWidth)/2 + 'px';
 				}	
 			}
 			
-			Load._loaderInterval = setInterval(Load._animateLoader, Load._loaderAnimInterval);
+			jLoad._loaderInterval = setInterval(jLoad._animateLoader, jLoad._loaderAnimInterval);
 		}
 	},
 	
 	_animateLoader: function() {
-		if(Load._loader) {
-			var animLen = Load._loaderAnimText.length;
+		if(jLoad._loader) {
+			var animLen = jLoad._loaderAnimText.length;
 			if(animLen > 0) {
-				var frameNum = Load._loaderCounter++ % animLen;
-				Load._loaderTextBox.innerHTML = Load._loaderAnimText[frameNum];
+				var frameNum = jLoad._loaderCounter++ % animLen;
+				jLoad._loaderTextBox.innerHTML = jLoad._loaderAnimText[frameNum];
 			} else {
-				clearInterval(Load._loaderInterval);
-				Load._loaderInterval = null;
+				clearInterval(jLoad._loaderInterval);
+				jLoad._loaderInterval = null;
 			}
 		}
 	},
 	
 	_loaded: function() {
-		Load.hideLoader();
+		jLoad.hideLoader();
 		$loader.finish();
 	},
 	
 	hideLoader: function() {		
-		if(Load._loaderInterval) {
-			clearInterval(Load._loaderInterval);
-			Load._loaderInterval = null;
+		if(jLoad._loaderInterval) {
+			clearInterval(jLoad._loaderInterval);
+			jLoad._loaderInterval = null;
 		}
-		if(document.body && Load._loader.parentNode == document.body && Load._loader) {
-			document.body.removeChild(Load._loader);
-			Load._loader = null;
+		if(document.body && jLoad._loader.parentNode == document.body && jLoad._loader) {
+			document.body.removeChild(jLoad._loader);
+			jLoad._loader = null;
 		}
 	},
 	
 	getWindowWidth: function() {
-		if(Load.IE) {
+		if(jLoad.IE) {
 			return document.documentElement.clientWidth ? document.documentElement.clientWidth : document.body.clientWidth;
 		} else {
 			return window.innerWidth;
@@ -135,7 +135,7 @@ var Load = {
 	},
 	
 	getWindowHeight: function() {
-		if(Load.IE) {
+		if(jLoad.IE) {
 			return document.documentElement.clientHeight ? document.documentElement.clientHeight : document.body.clientHeight;
 		} else {
 			return window.innerHeight;
@@ -143,4 +143,4 @@ var Load = {
 	}
 };
 
-$loader.setLoader(Load);
+$loader.setLoader(jLoad);

@@ -10,6 +10,7 @@ var $loader = {
 	
 	_appDefinition: null,
 	_resources: null,
+	_resourceIDs: null,
 	_resourcesLoaded: null,
 	
 	_deepResources: null,
@@ -38,9 +39,12 @@ var $loader = {
 		$loader._routToScriptURL = routToScriptURL;
 		
 		$loader._appDefinition = appDefinition;
+		
+		$loader._resourceIDs = {};
 				
 		$loader._resources = resources;
 		$loader._resources.push($loader._routToScriptURL);
+		$loader._resourceIDs[$loader._routToScriptURL] = 'jComboInitScript';
 		
 		$loader._resourcesLoaded = [];
 		$loader._deepResources = {};
@@ -93,14 +97,15 @@ var $loader = {
 	_embedAllResources: function() {
 		if($loader._embedCounter < $loader._resources.length) {
 			var url = $loader._resources[$loader._embedCounter];
+			var id = $loader._resourceIDs[url];
 			
 			if(/[.]js$/.test(url)) {
-				$loader.scriptTag(url, 'text/javascript', null, function() {
+				$loader.scriptTag(url, 'text/javascript', id, function() {
 					$loader._embedCounter++;
 					$loader._embedAllResources();
 				});
 			} else if(/[.]css$/.test(url)) {
-				$loader.linkTag(url, 'text/css', 'stylesheet');
+				$loader.linkTag(url, 'text/css', 'stylesheet', id);
 				$loader._embedCounter++;
 				$loader._embedAllResources();
 			}
