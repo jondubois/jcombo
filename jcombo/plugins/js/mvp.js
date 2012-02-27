@@ -12,7 +12,7 @@ $j.mvp = {
 		}
 		
 		$j.mvp._mainView.setContent('root', view);
-		$(document.body).html($j.mvp._mainView.toString());
+		$(document.body).html($j.mvp._mainView.toString(true));
 	},
 	
 	generateID: function() {
@@ -87,6 +87,9 @@ $j.mvp = {
 		}
 		
 		self.select = function(selector) {
+			if(!selector) {
+				return $("." + self._id);
+			}
 			var elSelector = "." + self._id + " " + selector;
 			self._unbindSelectorMap[elSelector] = true;
 			return $(elSelector);
@@ -164,32 +167,52 @@ $j.mvp = {
 			}
 		}
 		
-		self.toString = function() {
-			return self._wrapID(self._getContent());
+		self.toString = function(simpleFormat) {
+			var str = self._wrapID(self._getContent());
+			if(!simpleFormat) {
+				str = new Handlebars.SafeString(str);
+			}
+			return str;
 		}
 		
-		self._getContent = function(areaName) {
-			if(areaName) {
-				var content = self._data[areaName];
-				if(content instanceof $j.mvp.View) {
-					return new Handlebars.SafeString(content.toString());
-				} else {
-					return content;
-				}
+		self._formatIterable = function(iterable) {
+			var iter;
+			if(iterable instanceof Array) {
+				iter = [];
 			} else {
-				var compiledData = {};
-				$.each(self._data, function(index, value) {
-					if(value instanceof $j.mvp.View) {
-						compiledData[index] = new Handlebars.SafeString(value.toString());
-					} else if(typeof value == 'string') {
-						compiledData[index] =  new Handlebars.SafeString(value);
-					} else {
-						compiledData[index] = value;
-					}
-				});
-				
-				return self._template(compiledData);
+				iter = {};
 			}
+			
+			$.each(iterable, function(index, value) {
+				if(value instanceof $j.mvp.View) {
+					iter[index] = value.toString();
+				} else if(value instanceof String) {
+					iter[index] = new Handlebars.SafeString(value);
+				} else if(value instanceof Array || value instanceof Object) {
+					iter[index] = self._formatIterable(value);
+				} else {
+					iter[index] = value;
+				}
+			});
+			
+			return iter;
+		}
+		
+		self._getContent = function() {
+			var compiledData = {};
+			$.each(self._data, function(index, value) {
+				if(value instanceof $j.mvp.View) {
+					compiledData[index] = value.toString();
+				} else if(value instanceof String) {
+					compiledData[index] = new Handlebars.SafeString(value);
+				} else if(value instanceof Array || value instanceof Object) {
+					compiledData[index] = self._formatIterable(value);
+				} else {
+					compiledData[index] = value;
+				}
+			});
+			
+			return self._template(compiledData);
 		}
 		
 		self._wrapID = function(html) {
@@ -197,7 +220,7 @@ $j.mvp = {
 		}
 		
 		self._update = function() {
-			$('.' + self._id).replaceWith(self.toString());
+			$('.' + self._id).replaceWith(self.toString(true));
 			self.triggerRefresh();
 		}
 	}
