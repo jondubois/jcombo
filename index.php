@@ -10,7 +10,7 @@ Router::exec();
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>jCombo App</title>
-<link rel="stylesheet" type="text/css" href="jcombo/styles/jcombo.css" />
+<link rel="stylesheet" type="text/css" href="<?php echo JC_FRAMEWORK_URL; ?>styles/jcombo.css" />
 </head>
 <body>
 <noscript>
