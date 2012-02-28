@@ -83,8 +83,6 @@ $j.mvp = {
 				if(self._data.hasOwnProperty(index)) {
 					if(self._data[index] instanceof $j.mvp.View) {
 						self._data[index].setParent(null);
-					} else if(self._data[index].getView) {
-						self._data[index].getView().setParent(null);
 					}
 				}
 				if(value instanceof $j.mvp.View) {
@@ -245,8 +243,6 @@ $j.mvp = {
 			$.each(iterable, function(index, value) {
 				if(value instanceof $j.mvp.View) {
 					iter[index] = value.toString();
-				} else if(value.getView) {
-					iter[index] = value.getView().toString();
 				} else if(typeof value == 'string') {
 					iter[index] = new Handlebars.SafeString(value);
 				} else if(value instanceof Object) {
