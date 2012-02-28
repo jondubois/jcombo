@@ -52,7 +52,7 @@ $j.mvp = {
 		
 		self._id = 'jComboView' + $j.mvp.generateID();
 		
-		if(!template instanceof String) {
+		if(typeof template != 'string') {
 			throw self.errors.invalidTemplateError();
 		}
 		
@@ -234,7 +234,7 @@ $j.mvp = {
 			return str;
 		}
 		
-		self._formatIterable = function(iterable) {
+		self._safeFormat = function(iterable) {
 			var iter;
 			if(iterable instanceof Array) {
 				iter = [];
@@ -245,12 +245,12 @@ $j.mvp = {
 			$.each(iterable, function(index, value) {
 				if(value instanceof $j.mvp.View) {
 					iter[index] = value.toString();
-				} else if(value instanceof String) {
-					iter[index] = new Handlebars.SafeString(value);
-				} else if(value instanceof Array || value instanceof Object) {
-					iter[index] = self._formatIterable(value);
 				} else if(value.getView) {
 					iter[index] = value.getView().toString();
+				} else if(typeof value == 'string') {
+					iter[index] = new Handlebars.SafeString(value);
+				} else if(value instanceof Object) {
+					iter[index] = self._safeFormat(value);
 				} else {
 					iter[index] = value;
 				}
@@ -260,21 +260,7 @@ $j.mvp = {
 		}
 		
 		self._getContent = function() {
-			var compiledData = {};
-			$.each(self._data, function(index, value) {
-				if(value instanceof $j.mvp.View) {
-					compiledData[index] = value.toString();
-				} else if(value instanceof String) {
-					compiledData[index] = new Handlebars.SafeString(value);
-				} else if(value instanceof Array || value instanceof Object) {
-					compiledData[index] = self._formatIterable(value);
-				} else if(value.getView) {
-					compiledData[index] = value.getView().toString();
-				} else {
-					compiledData[index] = value;
-				}
-			});
-			
+			var compiledData = self._safeFormat(self._data);
 			return self._template(compiledData);
 		}
 		
