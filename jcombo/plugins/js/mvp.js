@@ -19,6 +19,20 @@ $j.mvp = {
 		return $j.mvp._idCount++;
 	},
 	
+	Area: function(parentView, areaName) {
+		var self = this;
+		self._parentView = parentView;
+		self._areaName = areaName;
+		
+		self.setContent = function(view) {
+			self._parentView.setContent(self._areaName, view);
+		}
+		
+		self.getContent = function() {
+			return self._parentView.getContent(self._areaName);
+		}
+	},
+	
 	View: function(template) {
 		var self = this;
 		self._parent = null;
@@ -26,14 +40,24 @@ $j.mvp = {
 		self._unbindSelectorMap = {};
 		self._rebindSelectorMap = {};
 		self._callbacks['refresh'] = [];
+		self.errors = {
+			invalidTemplateError: function(areaName) {
+				return 'Exception: The specified template must be of type String';
+			},
+			
+			areaDoesNotExistError: function(areaName) {
+				return 'Exception: View does not have an area with the areaName "' + areaName + '"';
+			}
+		};
 		
 		self._id = 'jComboView' + $j.mvp.generateID();
 		
-		if(typeof template == 'string') {
-			self._template = Handlebars.compile(template);
-		} else {
-			self._template = template;
+		if(!template instanceof String) {
+			throw self.errors.invalidTemplateError();
 		}
+		
+		self._templateString = template;
+		self._template = Handlebars.compile(template);
 		self._data = {};
 		
 		self.getID = function() {
@@ -50,19 +74,30 @@ $j.mvp = {
 		
 		self.setData = function(data) {
 			$.each(self._data, function(index, value) {
-				if(value instanceof $j.mvp.View) {
+				if(value.triggerBeforeRemove) {
 					value.triggerBeforeRemove();
 				}
 			});
 			
 			$.each(data, function(index, value) {
-				if(self._data.hasOwnProperty(index) && self._data[index] instanceof $j.mvp.View) {
-					self._data[index].setParent(null);
+				if(self._data.hasOwnProperty(index)) {
+					if(self._data[index] instanceof $j.mvp.View) {
+						self._data[index].setParent(null);
+					} else if(self._data[index].getView) {
+						self._data[index].getView().setParent(null);
+					}
 				}
 				if(value instanceof $j.mvp.View) {
 					value.setParent(self);
 				}
-				self._data[index] = value;
+				
+				if(value.getView) {
+					var view = value.getView();
+					view.setParent(self);
+					self._data[index] = view;
+				} else {
+					self._data[index] = value;
+				}
 			});
 			
 			self._update();
@@ -80,10 +115,34 @@ $j.mvp = {
 			return self._data;
 		}
 		
+		self.getArea = function(areaName) {
+			if(!self.hasArea(areaName)) {
+				throw self.errors.areaDoesNotExistError(areaName);
+			}
+			return new $j.mvp.Area(self, areaName);
+		}
+		
 		self.setContent = function(areaName, view) {
+			if(!self.hasArea(areaName)) {
+				throw self.errors.areaDoesNotExistError(areaName);
+			}
+			
 			var data = {};
 			data[areaName] = view;
 			self.setData(data);
+		}
+		
+		self.hasArea = function(areaName) {
+			var areaRegex = new RegExp("[{][ ]*[{]([ ]*#[^ ]* +)?" + areaName + "[ ]*[}][ ]*[}]");
+			return areaRegex.test(self._templateString);
+		}
+		
+		self.getContent = function(areaName) {
+			if(!self.hasArea(areaName)) {
+				throw self.errors.areaDoesNotExistError(areaName);
+			}
+			
+			return self._data[areaName];
 		}
 		
 		self.select = function(selector) {
@@ -190,6 +249,8 @@ $j.mvp = {
 					iter[index] = new Handlebars.SafeString(value);
 				} else if(value instanceof Array || value instanceof Object) {
 					iter[index] = self._formatIterable(value);
+				} else if(value.getView) {
+					iter[index] = value.getView().toString();
 				} else {
 					iter[index] = value;
 				}
@@ -207,6 +268,8 @@ $j.mvp = {
 					compiledData[index] = new Handlebars.SafeString(value);
 				} else if(value instanceof Array || value instanceof Object) {
 					compiledData[index] = self._formatIterable(value);
+				} else if(value.getView) {
+					compiledData[index] = value.getView().toString();
 				} else {
 					compiledData[index] = value;
 				}
@@ -238,8 +301,8 @@ $j.grab.view = function(templateName, jRequest) {
 			
 			error: jRequest.error,
 			complete: jRequest.complete
-		});
+		}, true);
 	} else {
-		return new $j.mvp.View($j.grab.handlebars(templateName));
+		return new $j.mvp.View($j.grab.handlebars(templateName, null, true));
 	}
 }

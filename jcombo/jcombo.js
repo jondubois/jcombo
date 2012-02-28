@@ -228,10 +228,10 @@ var $j = {
 			template - Otherwise it will return nothing; the compiled template will need to be accessed through jRequest's 
 			success handler.
 		*/
-		handlebars: function(name, jRequest) {
+		handlebars: function(name, jRequest, raw) {
 			var resourceName = $j._appTemplatesURL + name + '.handlebars';
 			
-			if(jRequest) {				
+			if(jRequest) {		
 				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "error") {
 					
 					$j.grab._loadedTemplates[resourceName] = {status: "loading", response: null, callbacks: new Array(jRequest)};
@@ -251,7 +251,9 @@ var $j = {
 						
 						success: function(data, textStatus, jqXHR) {
 							if($j.grab._loadedTemplates[resourceName] && $j.grab._loadedTemplates[resourceName].status != "done") {
-								data = Handlebars.compile(data);
+								if(!raw) {
+									data = Handlebars.compile(data);
+								}
 								$j.grab._loadedTemplates[resourceName].status = "done";
 								$j.grab._loadedTemplates[resourceName].response = {data: data, textStatus: textStatus, jqXHR: jqXHR};
 								$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
@@ -311,7 +313,9 @@ var $j = {
 						async: false,
 						
 						success: function(data, textStatus, jqXHR) {
-							data = Handlebars.compile(data);
+							if(!raw) {
+								data = Handlebars.compile(data);
+							}
 							$j.grab._loadedTemplates[resourceName].status = "done";
 							$j.grab._loadedTemplates[resourceName].response = {data: data, textStatus: textStatus, jqXHR: jqXHR};
 							$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
