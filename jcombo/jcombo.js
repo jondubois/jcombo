@@ -43,6 +43,20 @@ var $j = {
 		}
 	},
 	
+	/**
+		Extend the functionality of a class with that of other mixin classes.
+		One or more classes can be specified: E.g. $j.mixin(MainClass, Mixin1, ..., MixinN);
+	*/
+	mixin: function(mainClass, mixinClass) {
+		mixinClass.apply(mainClass.prototype);
+		
+		var i;
+		var len = arguments.length;
+		for(i=2; i<len; i++) {
+			arguments[i].apply(mainClass.prototype);
+		}
+	}
+	
 	_triggerReady: function() {
 		if($j._readyCallbacks.length > 0) {
 			$j._execReadyCallbacks();
