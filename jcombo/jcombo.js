@@ -55,7 +55,7 @@ var $j = {
 		for(i=2; i<len; i++) {
 			arguments[i].apply(mainClass.prototype);
 		}
-	}
+	},
 	
 	_triggerReady: function() {
 		if($j._readyCallbacks.length > 0) {
