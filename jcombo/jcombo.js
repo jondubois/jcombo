@@ -55,6 +55,8 @@ var $j = {
 		for(i=2; i<len; i++) {
 			arguments[i].apply(mainClass.prototype);
 		}
+		
+		return mainClass;
 	},
 	
 	_triggerReady: function() {

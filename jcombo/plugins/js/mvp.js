@@ -2,13 +2,27 @@ $j.mvp = {
 	_idCount: 0,
 	_mainView: null,
 	
+	errors: {
+		domNotReadyException: function() {
+			return 'DOMNotReadyException: The DOM is not ready - Main view cannot be set';
+		},
+	
+		methodNotImplemented: function(object, methodName) {
+			return 'MethodNotImplementedException: The ' + methodName + ' method needs to be implemented by the following object: ' + object;
+		},
+		
+		notAddedToDOM: function(componentName, actionName) {
+			return 'NotAddedToDOMException: The ' + actionName + ' action cannot be executed because the ' + componentName + ' component has not been added to the DOM';
+		}
+	},
+	
 	init: function() {
 		$j.mvp._mainView = new $j.mvp.View('{{root}}');
 	},
 	
 	setMainView: function(view) {
 		if(!$j.mvp._mainView) {
-			throw 'DOMNotReadyException: the DOM is not ready - Main view cannot be set';
+			throw $j.mvp.errors.domNotReadyException();
 		}
 		
 		$j.mvp._mainView.setContent('root', view);
@@ -261,12 +275,76 @@ $j.mvp = {
 		}
 		
 		self._wrapID = function(html) {
-			return '<div class="' + self._id + '">' + html + '</div>'
+			return '<div class="jComboWrapper ' + self._id + '">' + html + '</div>'
 		}
 		
 		self._update = function() {
 			$('.' + self._id).replaceWith(self.toString(true));
 			self.triggerRefresh();
+		}
+	}, 
+	
+	/**
+		Mixin class to be mixed into all component classes which implement the getView() method.
+		See $j.mixin() function.
+	*/
+	Component: function() {	
+		this.getComponentName = function() {
+			throw $j.mvp.errors.methodNotImplemented(this.constructor.toString(), 'getComponentName()');
+		}
+		
+		this.getView = function() {
+			throw $j.mvp.errors.methodNotImplemented(this.getComponentName(), 'getView()');
+		}
+		
+		this.isInDOM = function() {
+			return this.getView().getParent() ? true : false;
+		}
+		
+		this.select = function(selector) {
+			var view = this.getView();
+			
+			if(!view.getParent()) {
+				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'select()');
+			}
+			
+			return view.select(selector);
+		}
+		
+		this.delegate = function(selector, eventType, handler) {
+			var view = this.getView();
+			
+			if(!view.getParent()) {
+				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'delegate()');
+			}
+			view.delegate(selector);
+		}
+		
+		this.undelegate = function(selector, eventType, handler) {
+			var view = this.getView();
+			
+			if(!view.getParent()) {
+				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'undelegate()');
+			}
+			view.undelegate(selector, eventType, handler);
+		}
+		
+		this.bind = function(eventType, handler) {
+			var view = this.getView();
+			
+			if(!view.getParent()) {
+				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'bind()');
+			}
+			view.bind(eventType, handler);
+		}
+		
+		this.unbind = function(eventType, handler) {
+			var view = this.getView();
+			
+			if(!view.getParent()) {
+				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'unbind()');
+			}
+			view.unbind(eventType, handler);
 		}
 	}
 };
