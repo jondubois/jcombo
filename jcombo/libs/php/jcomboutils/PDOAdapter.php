@@ -16,6 +16,7 @@ class PDOAdapter {
 	*/
 	public function __construct($dsn, $username='', $password='', $options=array()) {
 		$this->store = new PDO($dsn, $username, $password, $options);
+		$this->store->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
 	
 	/**
