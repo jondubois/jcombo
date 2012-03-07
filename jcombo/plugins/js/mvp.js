@@ -25,8 +25,12 @@ $j.mvp = {
 			throw $j.mvp.errors.domNotReadyException();
 		}
 		
-		$j.mvp._mainView.setContent('root', view);
 		$(document.body).html($j.mvp._mainView.toString(true));
+		$j.mvp._mainView.setContent('root', view);
+	},
+	
+	getMainView: function() {
+		return $j.mvp._mainView;
 	},
 	
 	generateID: function() {
@@ -53,7 +57,10 @@ $j.mvp = {
 		self._callbacks = {};
 		self._unbindSelectorMap = {};
 		self._rebindSelectorMap = {};
-		self._callbacks['refresh'] = [];
+		self._callbacks['render'] = [];
+		self._callbacks['unrender'] = [];
+		self._children = {};
+		
 		self.errors = {
 			invalidTemplateError: function(areaName) {
 				return 'Exception: The specified template must be of type String';
@@ -86,33 +93,48 @@ $j.mvp = {
 			return self._parent;
 		}
 		
-		self.setData = function(data) {
-			$.each(self._data, function(index, value) {
-				if(value.triggerBeforeRemove) {
-					value.triggerBeforeRemove();
-				}
-			});
-			
-			$.each(data, function(index, value) {
-				if(self._data.hasOwnProperty(index)) {
-					if(self._data[index] instanceof $j.mvp.View) {
-						self._data[index].setParent(null);
-					}
-				}
-				if(value instanceof $j.mvp.View) {
-					value.setParent(self);
-				}
+		self.addViewableChild = function(child) {
+			self._children[child.getID()] = child;
+		}
+		
+		self.removeViewableChild = function(child) {
+			delete self._children[child.getID()];
+		}
+		
+		self._adoptDescendantViewables = function(iterable) {
+			var basicType;
+			$.each(iterable, function(index, value) {
+				basicType = $j.getBasicType(value);
 				
-				if(value.getView) {
-					var view = value.getView();
-					view.setParent(self);
-					self._data[index] = view;
-				} else {
-					self._data[index] = value;
+				if(value.setParent && value.getID) {
+					value.setParent(self);
+					self._children[value.getID()] = value;
+				} else if(basicType == 'Array' || basicType == 'Object') {
+					self._adoptDescendantViewables(value);
+				}
+			});
+		}
+		
+		self.setData = function(data) {
+			$.each(self._children, function(index, value) {
+				if(value.triggerUnrender) {
+					self.triggerUnrender();
+				}
+				if(value.setParent && value.getID) {
+					value.setParent(null);
+					delete self._children[value.getID()];
 				}
 			});
 			
-			self._update();
+			$.each(data, function(index, value) {				
+				self._data[index] = value;
+			});
+			
+			self._adoptDescendantViewables(self._data);
+			
+			if(self.isInDOM()) {
+				self._update();
+			}
 		}
 		
 		self.clearData = function() {
@@ -188,27 +210,39 @@ $j.mvp = {
 		
 		self.bind = function(eventType, handler) {
 			var selector = '.' + self._id;
-			self._rebindSelectorMap[selector] = {eventType: eventType, handler: handler};
-			$(selector).bind(eventType, handler);
+			if(eventType == 'render' || eventType == 'unrender') {
+				self._callbacks[eventType].push(callback);
+			} else {
+				self._rebindSelectorMap[selector] = {eventType: eventType, handler: handler};
+				$(selector).bind(eventType, handler);
+			}
 		}
 		
 		self.unbind = function(eventType, handler) {
-			if(eventType == 'refresh') {
-				self._callbacks['refresh'] = $.grep(self._callbacks['refresh'], function(value) {
+			if(eventType == 'render' || eventType == 'unrender') {
+				self._callbacks[eventType] = $.grep(self._callbacks[eventType], function(value) {
 					return value != handler;
 				});
 			} else {
 				var selector = '.' + self._id;
-				self._rebindSelectorMap[selector] = null;
+				delete self._rebindSelectorMap[selector];
 				$(selector).unbind(eventType, handler);
 			}
 		}
 		
-		self.refresh = function(callback) {
-			self._callbacks['refresh'].push(callback);
+		self.render = function(callback) {
+			self._callbacks['render'].push(callback);
 		}
 		
-		self.triggerBeforeRemove = function() {			
+		self.unrender = function(callback) {
+			self._callbacks['unrender'].push(callback);
+		}
+		
+		self.triggerUnrender = function() {
+			$.each(self._callbacks['unrender'], function(index, value) {
+				value();
+			});
+			
 			$.each(self._unbindSelectorMap, function(index) {
 				$(index).unbind();
 			});
@@ -217,25 +251,33 @@ $j.mvp = {
 				$(index).unbind();
 			});
 			
+			$.each(self._children, function(index, value) {
+				if(value.triggerUnrender) {
+					value.triggerUnrender();
+				}
+			});
+			
 			self._unbindSelectorMap = {};
 		}
 		
-		self.triggerRefresh = function() {
-			if(self._parent) {
-				$.each(self._rebindSelectorMap, function(index, value) {
-					$(index).bind(value.eventType, value.handler);
-				});
-				
-				$.each(self._data, function(index, value) {
-					if(value instanceof $j.mvp.View) {
-						value.triggerRefresh();
-					}
-				});
-				
-				$.each(self._callbacks['refresh'], function(index, value) {
-					value();
-				});
-			}
+		self.triggerRender = function() {
+			$.each(self._rebindSelectorMap, function(index, value) {
+				$(index).bind(value.eventType, value.handler);
+			});
+			
+			$.each(self._callbacks['render'], function(index, value) {
+				value();
+			});
+			
+			$.each(self._children, function(index, value) {
+				if(value.triggerRender) {
+					value.triggerRender();
+				}
+			});
+		}
+		
+		self.isInDOM = function() {			
+			return $('.' + self._id).length > 0;
 		}
 		
 		self.toString = function(simpleFormat) {
@@ -255,7 +297,7 @@ $j.mvp = {
 			}
 			
 			$.each(iterable, function(index, value) {
-				if(value instanceof $j.mvp.View) {
+				if(value instanceof $j.mvp.View || value.jComboMVPComponent) {
 					iter[index] = value.toString();
 				} else if(typeof value == 'string') {
 					iter[index] = new Handlebars.SafeString(value);
@@ -280,7 +322,7 @@ $j.mvp = {
 		
 		self._update = function() {
 			$('.' + self._id).replaceWith(self.toString(true));
-			self.triggerRefresh();
+			self.triggerRender();
 		}
 	}, 
 	
@@ -288,7 +330,9 @@ $j.mvp = {
 		Mixin class to be mixed into all component classes which implement the getView() method.
 		See $j.mixin() function.
 	*/
-	Component: function() {	
+	Component: function() {
+		this.jComboMVPComponent = true;
+	
 		this.getComponentName = function() {
 			throw $j.mvp.errors.methodNotImplemented(this.constructor.toString(), 'getComponentName()');
 		}
@@ -297,14 +341,26 @@ $j.mvp = {
 			throw $j.mvp.errors.methodNotImplemented(this.getComponentName(), 'getView()');
 		}
 		
+		this.getID = function() {
+			return this.getView().getID();
+		}
+		
+		this.addViewableChild = function(child) {
+			this.getView().addViewableChild(child);
+		}
+		
+		this.removeViewableChild = function(child) {
+			this.getView().removeViewableChild(child);
+		}
+		
 		this.isInDOM = function() {
-			return this.getView().getParent() ? true : false;
+			return this.getView().isInDOM();
 		}
 		
 		this.select = function(selector) {
 			var view = this.getView();
 			
-			if(!view.getParent()) {
+			if(!view.isInDOM()) {
 				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'select()');
 			}
 			
@@ -345,6 +401,26 @@ $j.mvp = {
 				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'unbind()');
 			}
 			view.unbind(eventType, handler);
+		}
+		
+		this.toString = function() {
+			return this.getView().toString();
+		}
+		
+		this.setParent = function(parent) {
+			return this.getView().setParent(parent);
+		}
+		
+		this.getParent = function() {
+			return this.getView().getParent();
+		}
+		
+		this.triggerRender = function() {
+			return this.getView().triggerRender();
+		}
+		
+		this.triggerUnrender = function() {
+			return this.getView().triggerUnrender();
 		}
 	}
 };

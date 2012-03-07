@@ -59,6 +59,13 @@ var $j = {
 		return mainClass;
 	},
 	
+	getBasicType: function(variable) {
+		var classType = {}.toString
+		var typeRegex = /[^0-9A-Za-z]*([A-Z][a-zA-Z0-9]*)/;
+		var typeString = classType.call(variable);
+		return typeString.match(typeRegex)[1];
+	},
+	
 	_triggerReady: function() {
 		if($j._readyCallbacks.length > 0) {
 			$j._execReadyCallbacks();
