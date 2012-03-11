@@ -13,6 +13,10 @@ $j.mvp = {
 		
 		notAddedToDOM: function(componentName, actionName) {
 			return 'NotAddedToDOMException: The ' + actionName + ' action cannot be executed because the ' + componentName + ' component has not been added to the DOM';
+		},
+		
+		noParamsSpecified: function() {
+			return 'No parameters were specified';
 		}
 	},
 	
@@ -56,7 +60,7 @@ $j.mvp = {
 		self._parent = null;
 		self._callbacks = {};
 		self._unbindSelectorMap = {};
-		self._rebindSelectorMap = {};
+		self._rebindEvents = [];
 		self._callbacks['render'] = [];
 		self._callbacks['unrender'] = [];
 		self._children = {};
@@ -180,6 +184,10 @@ $j.mvp = {
 		}
 		
 		self.select = function(selector) {
+			if(!self.isInDOM()) {
+				throw $j.mvp.errors.notAddedToDOM('View', 'select()');
+			}
+			
 			if(!selector) {
 				return $("." + self._id);
 			}
@@ -188,68 +196,91 @@ $j.mvp = {
 			return $(elSelector);
 		}
 		
-		self.delegate = function(selector, eventType, handler) {
-			$(document.body).delegate("." + self._id + " " + selector, eventType, handler);
+		self._handlerTriggeredBy = function(handlerData, triggeredByData) {
+			var triggers = true;
+			$.each(triggeredByData, function(index, value) {
+				if(!handlerData[index] || handlerData[index] != value) {
+					triggers = false;
+					return false;
+				}
+			});
+			
+			return triggers;
 		}
 		
-		self.undelegate = function(selector, eventType, handler) {
-			if(!selector) {
-				throw "ParamException: The selector parameter was not specified";
+		self.on = function() {
+			var args = arguments;
+			var selfSelector = '.' + self._id;
+			var jObject = $(selfSelector);
+			if(args.length < 1) {
+				throw $j.mvp.errors.noParamsSpecified();
 			}
 			
-			if(!eventType) {
-				throw "ParamException: The eventType parameter was not specified";
-			}
+			if(args[0] == 'render' || args[0] == 'unrender') {
+				var lastArg = args[args.length-1];
+				if(args.length < 2 || !lastArg instanceof Function) {
+					throw 'Exception: Handler not specified for the ' + args[0] + ' event';
+				}
 			
-			if(!handler) {
-				$(document.body).undelegate("." + self._id + " " + selector, eventType);
+				self._callbacks[args[0]].push(lastArg);
 			} else {
-				$(document.body).undelegate("." + self._id + " " + selector, eventType, handler);
+				self._rebindEvents.push(args);
+				if(self.isInDOM()) {
+					jObject.on.apply(jObject, args);
+				}
 			}
 		}
 		
-		self.bind = function(eventType, handler) {
-			var selector = '.' + self._id;
-			if(eventType == 'render' || eventType == 'unrender') {
-				self._callbacks[eventType].push(callback);
+		self.off = function() {
+			var args = arguments;
+			if(args.length > 0 && (args[0] == 'render' || args[0] == 'unrender')) {
+				var firstArg = args[0];
+				var lastArg = args[args.length-1];
+				
+				if(args.length > 1) {
+					self._callbacks[firstArg] = $.grep(self._callbacks[firstArg], function(value) {
+						return value != lastArg;
+					});
+				} else {
+					self._callbacks[firstArg] = [];
+				}
 			} else {
-				self._rebindSelectorMap[selector] = {eventType: eventType, handler: handler};
-				$(selector).bind(eventType, handler);
+				var selfSelector = '.' + self._id;
+				var jObject = $(selfSelector);
+				
+				jObject.off.apply(jObject, args);
+				
+				if(self._rebindEvents.length > 0) {
+					self._rebindEvents = $.grep(self._rebindEvents, function(value) {
+						return !self._handlerTriggeredBy(value, args);
+					});
+				}
 			}
 		}
 		
-		self.unbind = function(eventType, handler) {
-			if(eventType == 'render' || eventType == 'unrender') {
-				self._callbacks[eventType] = $.grep(self._callbacks[eventType], function(value) {
-					return value != handler;
-				});
-			} else {
-				var selector = '.' + self._id;
-				delete self._rebindSelectorMap[selector];
-				$(selector).unbind(eventType, handler);
-			}
+		self.render = function(handler) {
+			self.on('render', handler);
 		}
 		
-		self.render = function(callback) {
-			self._callbacks['render'].push(callback);
-		}
-		
-		self.unrender = function(callback) {
-			self._callbacks['unrender'].push(callback);
+		self.unrender = function(handler) {
+			self.on('unrender', handler);
 		}
 		
 		self.triggerUnrender = function() {
+			var selector = '.' + self._id;
+			
 			$.each(self._callbacks['unrender'], function(index, value) {
 				value();
 			});
 			
 			$.each(self._unbindSelectorMap, function(index) {
 				$(index).unbind();
+				$(index).off();
 			});
 			
-			$.each(self._rebindSelectorMap, function(index) {
-				$(index).unbind();
-			});
+			if(self._rebindEvents.length > 0) {
+				$(selector).off();
+			};
 			
 			$.each(self._children, function(index, value) {
 				if(value.triggerUnrender) {
@@ -261,8 +292,11 @@ $j.mvp = {
 		}
 		
 		self.triggerRender = function() {
-			$.each(self._rebindSelectorMap, function(index, value) {
-				$(index).bind(value.eventType, value.handler);
+			var selector = '.' + self._id;
+			var jObject = $(selector);
+			
+			$.each(self._rebindEvents, function(index, value) {
+				jObject.on.apply(jObject, value);
 			});
 			
 			$.each(self._callbacks['render'], function(index, value) {
@@ -367,40 +401,12 @@ $j.mvp = {
 			return view.select(selector);
 		}
 		
-		this.delegate = function(selector, eventType, handler) {
-			var view = this.getView();
-			
-			if(!view.getParent()) {
-				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'delegate()');
-			}
-			view.delegate(selector);
+		this.on = function() {
+			this.getView().on(arguments);
 		}
 		
-		this.undelegate = function(selector, eventType, handler) {
-			var view = this.getView();
-			
-			if(!view.getParent()) {
-				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'undelegate()');
-			}
-			view.undelegate(selector, eventType, handler);
-		}
-		
-		this.bind = function(eventType, handler) {
-			var view = this.getView();
-			
-			if(!view.getParent()) {
-				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'bind()');
-			}
-			view.bind(eventType, handler);
-		}
-		
-		this.unbind = function(eventType, handler) {
-			var view = this.getView();
-			
-			if(!view.getParent()) {
-				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'unbind()');
-			}
-			view.unbind(eventType, handler);
+		this.off = function() {
+			this.getView().off(arguments);
 		}
 		
 		this.toString = function() {
