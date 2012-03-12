@@ -108,13 +108,15 @@ $j.mvp = {
 		self._adoptDescendantViewables = function(iterable) {
 			var basicType;
 			$.each(iterable, function(index, value) {
-				basicType = $j.getBasicType(value);
-				
-				if(value.setParent && value.getID) {
-					value.setParent(self);
-					self._children[value.getID()] = value;
-				} else if(basicType == 'Array' || basicType == 'Object') {
-					self._adoptDescendantViewables(value);
+				if(value) {
+					basicType = $j.getBasicType(value);
+					
+					if(value.setParent && value.getID) {
+						value.setParent(self);
+						self._children[value.getID()] = value;
+					} else if(basicType == 'Array' || basicType == 'Object') {
+						self._adoptDescendantViewables(value);
+					}
 				}
 			});
 		}
@@ -331,7 +333,7 @@ $j.mvp = {
 			}
 			
 			$.each(iterable, function(index, value) {
-				if(value instanceof $j.mvp.View || value.jComboMVPComponent) {
+				if(value && (value instanceof $j.mvp.View || value.jComboMVPComponent)) {
 					iter[index] = value.toString();
 				} else if(typeof value == 'string') {
 					iter[index] = new Handlebars.SafeString(value);
