@@ -104,7 +104,7 @@ class PDOAdapter {
 	}
 	
 	/**
-	* Escape a string add single quotes around it - This makes it safe to use as part of an SQL query.
+	* Escape a string and add single quotes around it - This makes it safe to use as part of an SQL query.
 	* @param string $string A string to escape and quote
 	* @return string An escaped, quoted string
 	*/
