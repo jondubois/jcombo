@@ -19,21 +19,112 @@ class PDOAdapter {
 		$this->store->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	}
 	
-	/**
-	* Execute a query and return only the first column of each row in the result set as an array.
-	* @param string $sql An SQL query to execute
-	* @return array An array containing the first column of each row returned by the query
-	*/
-	public function firstColumnArrayQuery($sql) {
-		$list = array();
-		$result = @$this->store->query($sql, PDO::FETCH_NUM);
-		if($result) {
-			foreach($result as $res) {
-				$res[0] = self::autocastString($res[0]);
-				array_push($list, $res[0]);
+	public function quickSelect($tableName, $fields=false, $whereCondition=false, $startIndex=0, $numElements=false, $resultType=PDO::FETCH_BOTH) {
+		$tableName = $this->escape($tableName);
+		
+		$query = "SELECT";
+		
+		if($fields && count($fields) > 0) {
+			foreach($fields as $key => $value) {
+				$fields[$key] = $this->escape($value);
 			}
+			$query .= " ".implode(',', $fields);
+		} else {
+			$query .= " *";
 		}
-		return $list;
+		
+		$query .= " FROM $tableName";
+		
+		if($whereCondition) {
+			$query .= " WHERE $whereCondition";
+		}
+
+		if($startIndex < 0) {
+			throw new Exception('The specified $startIndex was invalid');
+		}
+		
+		if($numElements) {
+			if($numElements < 0) {
+				throw new Exception('The specified $numElements was invalid');
+			}
+			$query .= " LIMIT ".intval($startIndex).",".intval($numElements);
+		} else {
+			$query .= " LIMIT ".intval($startIndex).",18446744073709551615";
+		}
+		
+		$query .= ";";
+		
+		return $this->arrayQuery($query, $resultType);
+	}
+	
+	public function quickInsert($tableName, $fieldValueMap, $whereCondition=false) {
+		$tableName = $this->escape($tableName);
+	
+		$fields = array();
+		$values = array();
+		
+		foreach($fieldValueMap as $key => $value) {
+			$fields[] = $this->escape($key);
+			$values[] = $this->quote($value);
+		}
+		
+		if(count($fields) < 1) {
+			throw new Exception('The specified $fieldValueMap was empty');
+		}
+	
+		$query = "INSERT INTO $tableName (".implode(',', $fields).") VALUES(".implode(',', $values).")";
+		
+		if($whereCondition) {
+			$query .= " WHERE $whereCondition";
+		}
+		
+		$query .= ";";
+		
+		return $this->exec($query);
+	}
+	
+	public function quickUpdate($tableName, $fieldValueMap, $whereCondition=false) {
+		$tableName = $this->escape($tableName);
+	
+		$expressions = array();
+		
+		foreach($fieldValueMap as $key => $value) {
+			$expressions[] = $this->escape($key).'='.$this->quote($value);
+		}
+		
+		if(count($expressions) < 1) {
+			throw new Exception('The specified $fieldValueMap was empty');
+		}
+	
+		$query = "UPDATE $tableName SET ".implode(',', $expressions);
+		
+		if($whereCondition) {
+			$query .= " WHERE $whereCondition";
+		}
+		
+		$query .= ";";
+		
+		return $this->exec($query);
+	}
+	
+	public function quickDelete($tableName, $fieldValueMap, $andOrOr='AND') {
+		$andOrOr = strtoupper($andOrOr);
+		
+		if($andOrOr != 'AND' && $andOrOr != 'OR') {
+			throw new Exception('The $andOrOr parameter must be either \'AND\' or \'OR\'');
+		}
+		
+		$tableName = $this->escape($tableName);
+		
+		$expressions = array();
+		
+		foreach($fieldValueMap as $key => $value) {
+			$expressions[] = $this->escape($key).'='.$this->quote($value);
+		}
+		
+		$query = "DELETE FROM $tableName WHERE ".implode(" $andOrOr ", $expressions).";";
+		
+		return $this->exec($query);
 	}
 	
 	/**
@@ -54,6 +145,38 @@ class PDOAdapter {
 			}
 		}
 		return $list;
+	}
+	
+	/**
+	* Execute a query and return only the first column of each row in the result set as an array.
+	* @param string $sql An SQL query to execute
+	* @return array An array containing the first column of each row returned by the query
+	*/
+	public function firstColumnArrayQuery($sql) {
+		$list = array();
+		$result = @$this->store->query($sql, PDO::FETCH_NUM);
+		if($result) {
+			foreach($result as $res) {
+				$res[0] = self::autocastString($res[0]);
+				array_push($list, $res[0]);
+			}
+		}
+		return $list;
+	}
+	
+	/**
+	* Execute a query and return only the first row in the result set.
+	* @param string $sql An SQL query to execute
+	* @param int $resultType The type of object to return. Valid values include PDO::FETCH_NUM, PDO::FETCH_ASSOC or PDO::FETCH_BOTH
+	* @return mixed The first row in the result set. The exact type of this object (associative, numeric, or both) depends on the $resultType parameter
+	*/
+	public function firstRowQuery($sql, $resultType=PDO::FETCH_BOTH) {
+		$list = $this->arrayQuery($sql, $resultType);
+		if(isset($list[0])) {
+			return $list[0];
+		} else {
+			return array();
+		}
 	}
 	
 	/**
@@ -101,6 +224,15 @@ class PDOAdapter {
 	*/
 	public function rollBack() {
 		return $this->store->rollBack();
+	}
+	
+	/**
+	* Escape a string - This makes it safe to use as part of an SQL query.
+	* @param string $string A string to escape and quote
+	* @return string An escaped string
+	*/
+	public function escape($string) {
+		return preg_replace('/(^[\'"]|[\'"]$)/', '', $this->store->quote($string));
 	}
 	
 	/**

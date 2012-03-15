@@ -132,7 +132,7 @@ $j.mvp = {
 				}
 			});
 			
-			$.each(data, function(index, value) {				
+			$.each(data, function(index, value) {
 				self._data[index] = value;
 			});
 			
@@ -363,7 +363,7 @@ $j.mvp = {
 	}, 
 	
 	/**
-		Mixin class to be mixed into all component classes which implement the getView() method.
+		Mixin class to be mixed into all component classes which implement the getView() and getComponentName() methods.
 		See $j.mixin() function.
 	*/
 	Component: function() {
@@ -429,6 +429,10 @@ $j.mvp = {
 		
 		this.triggerUnrender = function() {
 			return this.getView().triggerUnrender();
+		}
+		
+		this.triggerInit = function() {
+			return this.getView().triggerInit();
 		}
 	}
 };
