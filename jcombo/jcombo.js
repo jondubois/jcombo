@@ -45,13 +45,34 @@ var $j = {
 	
 	/**
 		Extend the functionality of a class with that of other mixin classes.
-		One or more classes can be specified: E.g. $j.mixin(MainClass, Mixin1, ..., MixinN);
-		
 	*/
-	mixin: function(mainClass) {
+	mixin: function(mainClass) {	
 		var mixinHolder = function() {
+			var self = this;
+			
+			this._internalMixinArgs = {};
+			
 			this.initMixin = function(mixinClass, args) {
-				mixinClass.apply(this, args);
+				self = this;
+				
+				self._internalMixinArgs[mixinClass] = args;
+				if(args) {
+					mixinClass.apply(this, args);
+				} else {
+					mixinClass.apply(this);
+				}
+			}
+			
+			this.callMixinMethod = function(mixinClass, method, args) {
+				var mixedIn = new mixinClass(self._internalMixinArgs[mixinClass]);
+				
+				$.each(self, function(index, value) {
+					if(!(value instanceof Function)) {
+						mixedIn[index] = value;
+					}
+				});
+				
+				return mixedIn[method].apply(mixedIn, args);
 			}
 		}
 		mixinHolder.apply(mainClass.prototype);

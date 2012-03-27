@@ -25,9 +25,6 @@ class PDOAdapter {
 		$query = "SELECT";
 		
 		if($fields && count($fields) > 0) {
-			foreach($fields as $key => $value) {
-				$fields[$key] = $this->escape($value);
-			}
 			$query .= " ".implode(',', $fields);
 		} else {
 			$query .= " *";
