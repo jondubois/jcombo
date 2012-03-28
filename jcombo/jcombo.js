@@ -2,7 +2,7 @@
 	This script provides the core javascript functionality of jCombo.
 */
 var $j = {
-	_appDirPath: null,
+	_appPath: null,
 	_frameworkURL: null,
 	_jsLibsURL: null,
 	_frameworkStylesURL: null,
@@ -18,7 +18,7 @@ var $j = {
 	_readyCallbacks: null,
     
 	init: function(appDefinition) {
-		$j._appDirPath = appDefinition.appDirPath;
+		$j._appPath = appDefinition.appPath;
 		$j._frameworkURL = appDefinition.frameworkURL;
 		$j._jsLibsURL = appDefinition.jsLibsURL;
 		$j._frameworkStylesURL = appDefinition.frameworkStylesURL;
@@ -46,7 +46,7 @@ var $j = {
 	/**
 		Extend the functionality of a class with that of other mixin classes.
 	*/
-	mixin: function(mainClass) {	
+	mixin: function(mainClass) {
 		var mixinHolder = function() {
 			var self = this;
 			
@@ -747,7 +747,7 @@ var $j = {
 			params: args
 		};
 		
-		jRequest.data = "appDirPath=" + encodeURIComponent($j._appDirPath) + "&request=" + JSON.stringify(request);
+		jRequest.data = "appPath=" + encodeURIComponent($j._appPath) + "&request=" + JSON.stringify(request);
 		jRequest.dataType = "json";
 		$j.sendRequest(jRequest);
 	},
@@ -789,7 +789,7 @@ var $j = {
 			params: args
 		};
 		
-		jRequest.data = "appDirPath=" + encodeURIComponent($j._appDirPath) + "&request=" + JSON.stringify(request);
+		jRequest.data = "appPath=" + encodeURIComponent($j._appPath) + "&request=" + JSON.stringify(request);
 		jRequest.dataType = "json";
 		$j.sendRequest(jRequest);
 		return response;

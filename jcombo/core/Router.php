@@ -141,7 +141,7 @@ class Router {
 		
 		$includeResoucesArg = str_replace('\/', '/', json_encode(array_merge(self::$cssFiles, $jsIncludes)));
 		
-		$appInitArgs = '{appDirPath:"'.self::$applicationDirPath.'", frameworkURL:"'.JC_FRAMEWORK_URL.'", jsLibsURL:"'.JC_LIB_JS_URL.
+		$appInitArgs = '{appPath:"'.self::$applicationDirPath.'", frameworkURL:"'.JC_FRAMEWORK_URL.'", jsLibsURL:"'.JC_LIB_JS_URL.
 					'", frameworkStylesURL:"'.JC_FRAMEWORK_STYLES_URL.'", serverGatewayURL:"'.JC_SERVER_GATEWAY_URL.'", appScriptsURL:"'.JC_SCRIPTS_URL.
 					'", appStylesURL:"'.JC_STYLES_URL.'", appTemplatesURL:"'.JC_TEMPLATES_URL.'", appAssetsURL:"'.JC_ASSETS_URL.'", appFilesURL:"'.JC_FILES_URL.'"}';
 		

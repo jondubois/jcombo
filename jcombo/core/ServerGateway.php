@@ -4,10 +4,15 @@
 * It allows you to make calls to PHP methods using AJAX and JSON requests directly from JavaScript.
 */
 
-if(isset($_POST['appDirPath'])) {
-	define('JC_APP_DIR', urldecode($_POST['appDirPath']));
-} else if(isset($_GET['appDirPath'])) {
-	define('JC_APP_DIR', urldecode($_GET['appDirPath']));
+if(isset($_POST['appPath'])) {
+	define('JC_APP_DIR', urldecode($_POST['appPath']));
+} else if(isset($_GET['appPath'])) {
+	define('JC_APP_DIR', urldecode($_GET['appPath']));
+	ServerGateway::crossDomainMode(true);
+} else if(isset($_POST['relAppPath'])) {
+	define('JC_APP_DIR', dirname(__FILE__).'/../../'.urldecode($_POST['relAppPath']));
+} else if(isset($_GET['relAppPath'])) {
+	define('JC_APP_DIR', dirname(__FILE__).'/../../'.urldecode($_GET['relAppPath']));
 	ServerGateway::crossDomainMode(true);
 } else {
 	ServerGateway::respondException(new NoApplicationTargetException());
