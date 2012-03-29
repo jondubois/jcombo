@@ -64,6 +64,7 @@ $j.mvp = {
 		self._callbacks['render'] = [];
 		self._callbacks['unrender'] = [];
 		self._children = {};
+		self._classes = '';
 		
 		self.errors = {
 			invalidTemplateError: function(areaName) {
@@ -173,7 +174,7 @@ $j.mvp = {
 		}
 		
 		self.hasArea = function(areaName) {
-			var areaRegex = new RegExp("[{][ ]*[{]([ ]*#[^ ]* +)?" + areaName + "[ ]*[}][ ]*[}]");
+			var areaRegex = new RegExp('[{][ ]*[{]([ ]*#[^ ]* +)?' + areaName + '[ ]*[}][ ]*[}]');
 			return areaRegex.test(self._templateString);
 		}
 		
@@ -191,11 +192,28 @@ $j.mvp = {
 			}
 			
 			if(!selector) {
-				return $("." + self._id);
+				return $('.' + self._id);
 			}
-			var elSelector = "." + self._id + " " + selector;
+			var elSelector = '.' + self._id + ' ' + selector;
 			self._unbindSelectorMap[elSelector] = true;
 			return $(elSelector);
+		}
+		
+		self.addClass = function(cssClass) {
+			self._classes += ' ' + cssClass;
+			if(self.isInDOM()) {
+				var element = self.select();
+				element.addClass(cssClass);
+			}
+		}
+		
+		self.removeClass = function(cssClass) {
+			self._classes = self._classes.replace(new RegExp('( *' + cssClass + '| +$)', 'g'), '');
+			
+			if(self.isInDOM()) {
+				var element = self.select();
+				element.removeClass(cssClass);
+			}
 		}
 		
 		self._handlerTriggeredBy = function(handlerData, triggeredByData) {
@@ -353,7 +371,7 @@ $j.mvp = {
 		}
 		
 		self._wrapID = function(html) {
-			return '<div class="jComboWrapper ' + self._id + '">' + html + '</div>'
+			return '<div class="jComboWrapper ' + self._id + self._classes + '">' + html + '</div>'
 		}
 		
 		self._update = function() {

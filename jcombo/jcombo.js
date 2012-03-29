@@ -44,18 +44,16 @@ var $j = {
 	},
 	
 	/**
-		Extend the functionality of a class with that of other mixin classes.
+		Convert a class (function) into a mixin-extendable class. This will give the class internal access to an
+		initMixin(mixinClass, args) method and a callMixinMethod(mixinClass, method, args) which will allow the current
+		class to manipulate base mixins.
 	*/
 	mixin: function(mainClass) {
 		var mixinHolder = function() {
-			var self = this;
-			
 			this._internalMixinArgs = {};
 			
 			this.initMixin = function(mixinClass, args) {
-				self = this;
-				
-				self._internalMixinArgs[mixinClass] = args;
+				this._internalMixinArgs[mixinClass] = args;
 				if(args) {
 					mixinClass.apply(this, args);
 				} else {
@@ -64,10 +62,10 @@ var $j = {
 			}
 			
 			this.callMixinMethod = function(mixinClass, method, args) {
-				var mixedIn = new mixinClass(self._internalMixinArgs[mixinClass]);
+				var mixedIn = new mixinClass(this._internalMixinArgs[mixinClass]);
 				
-				$.each(self, function(index, value) {
-					if(!(value instanceof Function)) {
+				$.each(this, function(index, value) {
+					if(!(value instanceof Function) || index != method) {
 						mixedIn[index] = value;
 					}
 				});
@@ -216,7 +214,6 @@ var $j = {
 		*/
 		appCSS: function(name, successCallback, errorCallback) {
 			var resourceName = $j._appStylesURL + name + '.css';
-			
 			if(!$j.grab._activeCSS[resourceName]) {
 				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
@@ -228,7 +225,6 @@ var $j = {
 		*/
 		frameworkCSS: function(name, successCallback, errorCallback) {
 			var resourceName = $j._frameworkStylesURL + name + '.css';
-			
 			if(!$j.grab._activeCSS[resourceName]) {
 				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
@@ -586,6 +582,7 @@ var $j = {
 		},
 		
 		_parseDeepCSSURLs: function(fileContent, fileURL) {
+			var urlMap = {};
 			var urls = [];
 			var fileDirURL = fileURL.match(/^(.*)\//)[0];
 			
@@ -603,12 +600,13 @@ var $j = {
 			var len = chuncks.length;
 			for(i=0; i<len; i++) {
 				curURL = chuncks[i].replace(isolateURL, '');
-				if(curURL != "") {
+				if(curURL != "" && !urlMap.hasOwnProperty(curURL)) {
 					if(!absolute.test(curURL)) {
 						urls.push(fileDirURL + curURL);
 					} else {
 						urls.push(curURL);
 					}
+					urlMap[curURL] = true;
 				}
 			}
 				
@@ -841,3 +839,19 @@ var $j = {
 		}
 	}
 };
+
+if(!Array.prototype.indexOf) {
+	Array.prototype.indexOf = function(item, start) {
+		if(!start) {
+			start = 0;
+		}
+		var len = this.length;
+		var i;
+		for(i=start; i<len; i++) {
+			if(this[i] === item) {
+				return i;
+			}
+		}
+		return -1;
+	}
+}

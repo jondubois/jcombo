@@ -31,3 +31,7 @@ body {
 	margin-top: 4px;
 	text-align: center;
 }
+
+.jc-tabcontainer-contentarea {
+	overflow: auto;
+}
