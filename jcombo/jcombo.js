@@ -669,7 +669,6 @@ var $j = {
 				if(proxyRequest.error) {
 					proxyRequest.error(jqXHR, textStatus, data.value);
 				}
-				
 				throw $j.errors.serverGatewayError(data.value);
 			}
 		}
