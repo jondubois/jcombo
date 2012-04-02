@@ -1,6 +1,6 @@
 $j.mvp = {
 	_idCount: 0,
-	_mainView: null,
+	_rootView: null,
 	
 	errors: {
 		domNotReadyException: function() {
@@ -21,20 +21,20 @@ $j.mvp = {
 	},
 	
 	init: function() {
-		$j.mvp._mainView = new $j.mvp.View('{{root}}');
+		$j.mvp._rootView = new $j.mvp.View('{{mainView}}');
 	},
 	
 	setMainView: function(view) {
-		if(!$j.mvp._mainView) {
+		if(!$j.mvp._rootView) {
 			throw $j.mvp.errors.domNotReadyException();
 		}
 		
-		$(document.body).html($j.mvp._mainView.toString(true));
-		$j.mvp._mainView.setContent('root', view);
+		$(document.body).html($j.mvp._rootView.toString());
+		$j.mvp._rootView.setContent('mainView', view);
 	},
 	
 	getMainView: function() {
-		return $j.mvp._mainView;
+		return $j.mvp._rootView.getContent('mainView');
 	},
 	
 	generateID: function() {
@@ -52,6 +52,14 @@ $j.mvp = {
 		
 		self.getContent = function() {
 			return self._parentView.getContent(self._areaName);
+		}
+		
+		self.getParentView = function() {
+			return self._parentView;
+		}
+		
+		self.getAreaName = function() {
+			return self._areaName;
 		}
 	},
 	
@@ -123,10 +131,8 @@ $j.mvp = {
 		}
 		
 		self.setData = function(data) {
+			self.triggerUnrender();
 			$.each(self._children, function(index, value) {
-				if(value.triggerUnrender) {
-					self.triggerUnrender();
-				}
 				if(value.setParent && value.getID) {
 					value.setParent(null);
 					delete self._children[value.getID()];
@@ -288,7 +294,6 @@ $j.mvp = {
 		
 		self.triggerUnrender = function() {
 			var selector = '.' + self._id;
-			
 			$.each(self._callbacks['unrender'], function(index, value) {
 				value();
 			});
@@ -334,12 +339,12 @@ $j.mvp = {
 			return $('.' + self._id).length > 0;
 		}
 		
+		self.toHandlebarsString = function() {
+			return new Handlebars.SafeString(self.toString());			
+		}
+		
 		self.toString = function(simpleFormat) {
-			var str = self._wrapID(self._getContent());
-			if(!simpleFormat) {
-				str = new Handlebars.SafeString(str);
-			}
-			return str;
+			return self._wrapID(self._getContent());
 		}
 		
 		self._safeFormat = function(iterable) {
@@ -352,7 +357,7 @@ $j.mvp = {
 			
 			$.each(iterable, function(index, value) {
 				if(value && (value instanceof $j.mvp.View || value.jComboMVPComponent)) {
-					iter[index] = value.toString();
+					iter[index] = value.toHandlebarsString();
 				} else if(typeof value == 'string') {
 					iter[index] = new Handlebars.SafeString(value);
 				} else if(value instanceof Object) {
@@ -375,7 +380,7 @@ $j.mvp = {
 		}
 		
 		self._update = function() {
-			$('.' + self._id).replaceWith(self.toString(true));
+			self.select().html(self._getContent());
 			self.triggerRender();
 		}
 	}, 
@@ -427,6 +432,10 @@ $j.mvp = {
 		
 		this.off = function() {
 			this.getView().off(arguments);
+		}
+		
+		this.toHandlebarsString = function() {
+			return this.getView().toHandlebarsString();
 		}
 		
 		this.toString = function() {
