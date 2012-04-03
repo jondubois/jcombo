@@ -343,7 +343,7 @@ $j.mvp = {
 			return new Handlebars.SafeString(self.toString());			
 		}
 		
-		self.toString = function(simpleFormat) {
+		self.toString = function() {
 			return self._wrapID(self._getContent());
 		}
 		
@@ -380,89 +380,29 @@ $j.mvp = {
 		}
 		
 		self._update = function() {
-			self.select().html(self._getContent());
+			var selfDiv = self.select();
+			selfDiv.html(self._getContent());
+			selfDiv.addClass(self._classes);
 			self.triggerRender();
 		}
 	}, 
 	
 	/**
-		Mixin class to be mixed into all component classes which implement the getView() and getComponentName() methods.
+		Mixin class to be mixed into all component classes which must implement the getComponentName() methods.
 		See $j.mixin() function.
 	*/
-	Component: function() {
-		this.jComboMVPComponent = true;
 	
-		this.getComponentName = function() {
-			throw $j.mvp.errors.methodNotImplemented(this.constructor.toString(), 'getComponentName()');
+	Component: $j.mixin(function(template) {
+		var self = this;
+		self.initMixin($j.mvp.View, [template]);
+		self.jComboMVPComponent = true;
+	
+		self.getComponentName = function() {
+			throw $j.mvp.errors.methodNotImplemented(self.constructor.toString(), 'getComponentName()');
 		}
-		
-		this.getView = function() {
-			throw $j.mvp.errors.methodNotImplemented(this.getComponentName(), 'getView()');
-		}
-		
-		this.getID = function() {
-			return this.getView().getID();
-		}
-		
-		this.addViewableChild = function(child) {
-			this.getView().addViewableChild(child);
-		}
-		
-		this.removeViewableChild = function(child) {
-			this.getView().removeViewableChild(child);
-		}
-		
-		this.isInDOM = function() {
-			return this.getView().isInDOM();
-		}
-		
-		this.select = function(selector) {
-			var view = this.getView();
-			
-			if(!view.isInDOM()) {
-				throw $j.mvp.errors.notAddedToDOM(this.getComponentName(), 'select()');
-			}
-			
-			return view.select(selector);
-		}
-		
-		this.on = function() {
-			this.getView().on(arguments);
-		}
-		
-		this.off = function() {
-			this.getView().off(arguments);
-		}
-		
-		this.toHandlebarsString = function() {
-			return this.getView().toHandlebarsString();
-		}
-		
-		this.toString = function() {
-			return this.getView().toString();
-		}
-		
-		this.setParent = function(parent) {
-			return this.getView().setParent(parent);
-		}
-		
-		this.getParent = function() {
-			return this.getView().getParent();
-		}
-		
-		this.triggerRender = function() {
-			return this.getView().triggerRender();
-		}
-		
-		this.triggerUnrender = function() {
-			return this.getView().triggerUnrender();
-		}
-		
-		this.triggerInit = function() {
-			return this.getView().triggerInit();
-		}
-	}
+	})
 };
+
 
 $j.mvp.init();
 

@@ -320,7 +320,6 @@ class Router {
 		if(!file_exists($path)) {
 			throw new Exception('There is no server interface called  \''.$serverInterface.'.php\' in the '.JC_INTERFACES_DIR.' directory');
 		}
-		include_once(JC_APPLICATION_DIR.'include.php');
 		include_once($path);
 		
 		if(class_exists($serverInterface, false)) {

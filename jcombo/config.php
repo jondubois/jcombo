@@ -33,6 +33,6 @@ require_once(JC_FRAMEWORK_DIR.'core/Router.php');
 // define the root URL of jCombo on this server
 define('JC_FRAMEWORK_URL', PathManager::convertPathToURL(JC_FRAMEWORK_DIR));
 
-define('JC_SERVER_GATEWAY_URL', PathManager::convertPathToURL(JC_FRAMEWORK_DIR.'core/ServerGateway.php'));
+define('JC_SERVER_GATEWAY_URL', PathManager::convertPathToURL(JC_FRAMEWORK_DIR.'core/ws.php'));
 
 ?>

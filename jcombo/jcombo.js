@@ -43,6 +43,13 @@ var $j = {
 		}
 	},
 	
+	getBasicType: function(variable) {
+		var classType = {}.toString
+		var typeRegex = /[^0-9A-Za-z]*([A-Z][a-zA-Z0-9]*)/;
+		var typeString = classType.call(variable);
+		return typeString.match(typeRegex)[1];
+	},
+	
 	/**
 		Convert a class (function) into a mixin-extendable class. This will give the class internal access to an
 		initMixin(mixinClass, args) method and a callMixinMethod(mixinClass, method, args) which will allow the current
@@ -53,7 +60,11 @@ var $j = {
 			this._internalMixinArgs = {};
 			
 			this.initMixin = function(mixinClass, args) {
+				if(args && $j.getBasicType(args) != 'Array') {
+					throw 'Exception: The args parameter of the initMixin function must be an Array';
+				}
 				this._internalMixinArgs[mixinClass] = args;
+				
 				if(args) {
 					mixinClass.apply(this, args);
 				} else {
@@ -62,6 +73,9 @@ var $j = {
 			}
 			
 			this.callMixinMethod = function(mixinClass, method, args) {
+				if(args && $j.getBasicType(args) != 'Array') {
+					throw 'Exception: The args parameter of the callMixinMethod function must be an Array';
+				}
 				var mixedIn = new mixinClass(this._internalMixinArgs[mixinClass]);
 				var methodToCall = mixedIn[method];
 				
@@ -70,7 +84,6 @@ var $j = {
 						mixedIn[index] = value;
 					}
 				});
-				
 				var result = methodToCall.apply(mixedIn, args);
 				delete mixedIn;
 				
@@ -80,13 +93,6 @@ var $j = {
 		mixinHolder.apply(mainClass.prototype);
 		
 		return mainClass;
-	},
-	
-	getBasicType: function(variable) {
-		var classType = {}.toString
-		var typeRegex = /[^0-9A-Za-z]*([A-Z][a-zA-Z0-9]*)/;
-		var typeString = classType.call(variable);
-		return typeString.match(typeRegex)[1];
 	},
 	
 	_triggerReady: function() {
