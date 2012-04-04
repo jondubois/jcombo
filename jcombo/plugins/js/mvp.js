@@ -98,6 +98,10 @@ $j.mvp = {
 			return self._id;
 		}
 		
+		self.clone = function() {
+			return new $j.mvp.View(template);
+		}
+		
 		self.setParent = function(parent) {
 			self._parent = parent;
 		}

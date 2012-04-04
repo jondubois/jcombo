@@ -72,11 +72,13 @@ var $j = {
 				var mixedIn = new mixinClass(this._internalMixinArgs[mixinClass]);
 				var methodToCall = mixedIn[method];
 				
-				$.each(this, function(index, value) {
+				var value;
+				for(index in this) {
+					value = this[index];
 					if((!(value instanceof Function) || !(mixedIn[index] instanceof Function) || mixedIn[index].toString() != value.toString())) {
 						mixedIn[index] = value;
 					}
-				});
+				}
 				var result = methodToCall.apply(mixedIn, args);
 				delete mixedIn;
 				
