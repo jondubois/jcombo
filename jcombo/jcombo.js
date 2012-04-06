@@ -84,6 +84,10 @@ var $j = {
 				
 				return result;
 			}
+			
+			this.instanceOf = function(classReference) {
+				return this instanceof classReference || this._internalMixinArgs.hasOwnProperty(classReference);
+			}
 		}
 		mixinHolder.apply(mainClass.prototype);
 		
@@ -713,15 +717,21 @@ var $j = {
 		@param object handler A handler object that will handle the return value of the PHP method - 
 		The handler is an object which implements any of the following handler methods: success(data, textStatus, jqXHR), error(data, textStatus, jqXHR), complete(textStatus, jqXHR)
 	*/
-	acall: function(className, method, params, handler) {
+	acall: function(className, method, params, resultHandler, errorHandler) {
 		$j.validateCall(className, method, params);
 		var jRequest = {};
+		var handler;
 		
-		if(handler) {
-			var type = typeof handler;
-			if(type != "object") {
-				throw $j.errors.serverGatewayError("The specified handler must be a valid JavaScript Object; " + type + " was found");
+		if(resultHandler) {
+			if(resultHandler.success) {
+				handler = resultHandler;
+			} else {
+				handler = {success: resultHandler};
+				if(errorHandler) {
+					handler.error = errorHandler;
+				}
 			}
+			
 			if(handler.success) {
 				jRequest.success = handler.success;
 			}
