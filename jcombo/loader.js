@@ -356,10 +356,11 @@ var $loader = {
 	},
 	
 	_parseDeepCSSURLs: function(fileContent, fileURL) {
+		var urlMap = {};
 		var urls = [];
 		var fileDirURL = fileURL.match(/^(.*)\//)[0];
 		
-		var chuncks = $loader._parseFunctionCalls(fileContent, ['url']);
+		var chuncks = $j.grab._parseFunctionCalls(fileContent, ['url']);
 		
 		var imports = fileContent.match(/@import +["'][^"']+["']/g);
 		if(imports) {
@@ -373,12 +374,13 @@ var $loader = {
 		var len = chuncks.length;
 		for(i=0; i<len; i++) {
 			curURL = chuncks[i].replace(isolateURL, '');
-			if(curURL != "") {
+			if(curURL != "" && !urlMap.hasOwnProperty(curURL)) {
 				if(!absolute.test(curURL)) {
 					urls.push(fileDirURL + curURL);
 				} else {
 					urls.push(curURL);
 				}
+				urlMap[curURL] = true;
 			}
 		}
 			
