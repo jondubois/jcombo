@@ -19,7 +19,7 @@ define('JC_ASSETS_DIR', JC_APPLICATION_DIR.'assets/');
 define('JC_FILES_DIR', JC_APPLICATION_DIR.'files/');
 
 // define the data interfaces directory
-define('JC_INTERFACES_DIR', JC_APPLICATION_DIR.'interfaces/');
+define('JC_INTERFACES_DIR', JC_APPLICATION_DIR.'serverinterfaces/');
 
 // define the JavaScript scripts directory
 define('JC_SCRIPTS_DIR', JC_APPLICATION_DIR.'scripts/');
