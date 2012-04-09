@@ -27,7 +27,7 @@ class ServerGateway {
 	/*
 		Executes a jCombo request and returns the result.
 	*/
-	public static function execRequest($requestJSON) {		
+	public static function execRequest($requestJSON) {
 		self::$error = false;
 		self::$request = json_decode($requestJSON);
 		if(!isset(self::$request->className)) {
@@ -62,23 +62,17 @@ class ServerGateway {
 			throw new IncorrectParamsException(self::$request->className, self::$request->method);
 		}
 		
-		$args = array();
-		$i = 0;
-		foreach(self::$request->params as $param) {
-			$args[] = 'self::$request->params['.$i++.']';	
-		}
-		
 		if(self::$crossDomain) {
 			$className = self::$request->className;
 			$methodName = self::$request->method;
 			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
 					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
-				$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
+				$result = @call_user_func_array(self::$request->className.'::'.self::$request->method, self::$request->params);
 			} else {
 				throw new InvalidCrossDomainCallException($className, $methodName);
 			}
 		} else {
-			$result = @eval('return '.self::$request->className.'::'.self::$request->method.'('.implode(',', $args).');');
+			$result = @call_user_func_array(self::$request->className.'::'.self::$request->method, self::$request->params);
 		}
 		self::respond($result);
 	}

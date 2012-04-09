@@ -15,7 +15,7 @@ var $j = {
 	_appTemplatesURL: null,
 	_cacheSeverCalls: false,
 	_cacheTemplates: true,
-	_readyCallbacks: null,
+	_callbacks: {},
     
 	init: function(appDefinition) {
 		$j._appPath = appDefinition.appPath;
@@ -29,18 +29,8 @@ var $j = {
 		$j._appTemplatesURL = appDefinition.appTemplatesURL;
 		$j._appAssetsURL = appDefinition.appAssetsURL;
 		$j._appFilesURL = appDefinition.appFilesURL;
-		$j._readyCallbacks = [];
-	},
-	
-	/**
-		Bind a callback function to jCombo's ready event. The specified function will be called when jCombo is ready to begin processing.
-	*/
-	ready: function(callback) {
-		if(!$j.grab.isGrabbing()) {
-			callback();
-		} else {
-			$j._readyCallbacks.push(callback);
-		}
+		$j._callbacks['ready'] = [];
+		$j._callbacks['fail'] = [];
 	},
 	
 	/**
@@ -72,7 +62,7 @@ var $j = {
 				var mixedIn = new mixinClass(this._internalMixinArgs[mixinClass]);
 				var methodToCall = mixedIn[method];
 				
-				var value;
+				var value, index;
 				for(index in this) {
 					value = this[index];
 					if((!(value instanceof Function) || !(mixedIn[index] instanceof Function) || mixedIn[index].toString() != value.toString())) {
@@ -101,19 +91,46 @@ var $j = {
 		return typeString.match(typeRegex)[1];
 	},
 	
+	/**
+		Bind a callback function to jCombo's ready event. The specified function will be called when jCombo is ready to begin processing.
+	*/
+	ready: function(callback) {
+		if(!$j.grab.isGrabbing()) {
+			callback();
+		} else {
+			$j._callbacks['ready'].push(callback);
+		}
+	},
+	
+	/**
+		Bind a callback function to jCombo's fail event. The specified function will be called when jCombo fails to load a resource.
+		The callback can accept a parameter which indicates the URL of the resource which failed to load.
+	*/
+	fail: function(callback) {
+		$j._callbacks['fail'].push(callback);
+	},
+	
 	_triggerReady: function() {
-		if($j._readyCallbacks.length > 0) {
+		if($j._callbacks['ready'].length > 0) {
 			$j._execReadyCallbacks();
 		}
 	},
 	
 	_execReadyCallbacks: function() {
-		var len = $j._readyCallbacks.length;
+		var len = $j._callbacks['ready'].length;
 		var i;
 		for(i=len-1; i>=0; i--) {
-			$j._readyCallbacks[i]();
+			$j._callbacks['ready'][i]();
 		}
-		$j._readyCallbacks = [];
+		$j._callbacks['ready'] = [];
+	},
+	
+	_triggerFail: function(url) {
+		var len = $j._callbacks['fail'].length;
+		var i;
+		for(i=0; i<len; i++) {
+			 $j._callbacks['fail'][i](url);
+		}
 	},
 	
 	/**
@@ -322,6 +339,7 @@ var $j = {
 						},
 						
 						error: function(jqXHR, textStatus, errorThrown) {
+							$j._triggerFail(resourceName);
 							if($j.grab._loadedTemplates[resourceName]) {
 								$j.grab._loadedTemplates[resourceName].status = "error";
 								$j.grab._loadedTemplates[resourceName].response = null;
@@ -382,6 +400,7 @@ var $j = {
 						},
 						
 						error: function(jqXHR, textStatus, errorThrown) {
+							$j._triggerFail(resourceName);
 							$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
 								if(jReq.error) {
 									jReq.error($j.errors.loadTemplateError(errorThrown), textStatus, jqXHR);
@@ -544,10 +563,9 @@ var $j = {
 					};
 					
 					img.onerror = function() {
+						$j._triggerFail(url);
 						if(errorCallback) {
 							errorCallback(url);
-						} else {
-							throw $j.errors.loadError(url);
 						}
 					};
 					
@@ -586,10 +604,9 @@ var $j = {
 						},
 						
 						error: function() {
+							$j._triggerFail(url);
 							if(errorCallback) {
 								errorCallback(url);
-							} else {
-								throw $j.errors.loadError(url);
 							}
 						}
 					});
