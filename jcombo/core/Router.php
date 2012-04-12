@@ -431,7 +431,8 @@ class Router {
 	}
 	
 	public static function compileExceptionMessage($exception) {
-		return '['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine();
+		$backtrace = $exception->getTraceAsString();
+		return '['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
 	}
 	
 	private static function errorNumberToString($errorNumber) {

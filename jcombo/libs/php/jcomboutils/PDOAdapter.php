@@ -22,10 +22,14 @@ class PDOAdapter {
 	public function quickSelect($tableName, $fields=false, $whereCondition=false, $startIndex=0, $numElements=false, $resultType=PDO::FETCH_BOTH) {
 		$tableName = $this->escape($tableName);
 		
+		$newField = array();
 		$query = "SELECT";
 		
 		if($fields && count($fields) > 0) {
-			$query .= " ".implode(',', $fields);
+			foreach($fields as $field) {
+				$newField[] = $this->escape($field);
+			}
+			$query .= ' '.implode(',', $newField);
 		} else {
 			$query .= " *";
 		}
