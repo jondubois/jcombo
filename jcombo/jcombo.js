@@ -7,7 +7,7 @@ var $j = {
 	_jsLibsURL: null,
 	_frameworkStylesURL: null,
 	_serverGatewayURL: null,
-	_scriptsRouterURL: null,
+	_scriptRouterURL: null,
 	_appScriptsURL: null,
 	_appStylesURL: null,
 	_appAssetsURL: null,
@@ -23,7 +23,7 @@ var $j = {
 		$j._jsLibsURL = appDefinition.jsLibsURL;
 		$j._frameworkStylesURL = appDefinition.frameworkStylesURL;
 		$j._serverGatewayURL = appDefinition.serverGatewayURL;
-		$j._scriptsRouterURL = location.href.replace(/\?.*/, '');
+		$j._scriptRouterURL = location.href.replace(/\?.*/, '');
 		$j._appScriptsURL = appDefinition.appScriptsURL;
 		$j._appStylesURL = appDefinition.appStylesURL;
 		$j._appTemplatesURL = appDefinition.appTemplatesURL;
@@ -167,7 +167,7 @@ var $j = {
 		Navigate to another script.
 	*/
 	navigateToScript: function(scriptName) {
-		location.href = $j._scriptsRouterURL + (scriptName ? "?" + scriptName : "");
+		location.href = $j._scriptRouterURL + (scriptName ? "?" + scriptName : "");
 	},
 	
 	caching: {
