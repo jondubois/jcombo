@@ -29,13 +29,13 @@ class ServerGateway {
 	*/
 	public static function execRequest($requestJSON) {
 		self::$error = false;
-		self::$request = json_decode($requestJSON);
-		if(!isset(self::$request->className)) {
+		self::$request = json_decode($requestJSON, true);
+		if(!isset(self::$request['className'])) {
 			self::$request = json_decode(stripslashes($requestJSON));
 		}
 		
-		if(!isset(self::$request->className)) {
-			if(preg_match('/(?<="className":")[^"]*/', $requestJSON, $classMatch) && 
+		if(!isset(self::$request['className'])) {
+			if(preg_match('/(?<="className":")[^"]*/', $requestJSON, $classMatch) &&
 					preg_match('/(?<="method":")[^"]*/', $requestJSON, $methodMatch)) {
 				throw new IncorrectParamsException($classMatch[0], $methodMatch[0]);
 			} else {
@@ -43,36 +43,36 @@ class ServerGateway {
 			}
 		}
 		
-		$classFile = JC_INTERFACES_DIR.self::$request->className.'.php';
+		$classFile = JC_INTERFACES_DIR.self::$request['className'].'.php';
 		
 		if(file_exists($classFile)) {
 			include_once($classFile);
 		} else {
-			throw new ClassNotFoundException(self::$request->className);	
+			throw new ClassNotFoundException(self::$request['className']);	
 		}
 		
-		if(!is_callable(array(self::$request->className, self::$request->method))) {
-			throw new InvalidMethodException(self::$request->className, self::$request->method);
+		if(!is_callable(array(self::$request['className'], self::$request['method']))) {
+			throw new InvalidMethodException(self::$request['className'], self::$request['method']);
 		}
 		
-		$reflectMethod = new ReflectionMethod(self::$request->className, self::$request->method);
+		$reflectMethod = new ReflectionMethod(self::$request['className'], self::$request['method']);
 		$reqNumParams = $reflectMethod->getNumberOfRequiredParameters();
 		
-		if(count(self::$request->params) < $reqNumParams) {
-			throw new IncorrectParamsException(self::$request->className, self::$request->method);
+		if(count(self::$request['params']) < $reqNumParams) {
+			throw new IncorrectParamsException(self::$request['className'], self::$request['method']);
 		}
 		
 		if(self::$crossDomain) {
-			$className = self::$request->className;
-			$methodName = self::$request->method;
+			$className = self::$request['className'];
+			$methodName = self::$request['method'];
 			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
 					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
-				$result = @call_user_func_array(self::$request->className.'::'.self::$request->method, self::$request->params);
+				$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
 			} else {
 				throw new InvalidCrossDomainCallException($className, $methodName);
 			}
 		} else {
-			$result = @call_user_func_array(self::$request->className.'::'.self::$request->method, self::$request->params);
+			$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
 		}
 		self::respond($result);
 	}
