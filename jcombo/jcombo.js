@@ -7,7 +7,7 @@ var $j = {
 	_jsLibsURL: null,
 	_frameworkStylesURL: null,
 	_serverGatewayURL: null,
-	_scriptRouterURL: null,
+	_scriptsRouterURL: null,
 	_appScriptsURL: null,
 	_appStylesURL: null,
 	_appAssetsURL: null,
@@ -16,6 +16,7 @@ var $j = {
 	_cacheSeverCalls: false,
 	_cacheTemplates: true,
 	_callbacks: {},
+	_callListeners: {},
     
 	init: function(appDefinition) {
 		$j._appPath = appDefinition.appPath;
@@ -23,7 +24,7 @@ var $j = {
 		$j._jsLibsURL = appDefinition.jsLibsURL;
 		$j._frameworkStylesURL = appDefinition.frameworkStylesURL;
 		$j._serverGatewayURL = appDefinition.serverGatewayURL;
-		$j._scriptRouterURL = location.href.replace(/\?.*/, '');
+		$j._scriptsRouterURL = location.href.replace(/\?.*/, '');
 		$j._appScriptsURL = appDefinition.appScriptsURL;
 		$j._appStylesURL = appDefinition.appStylesURL;
 		$j._appTemplatesURL = appDefinition.appTemplatesURL;
@@ -167,7 +168,7 @@ var $j = {
 		Navigate to another script.
 	*/
 	navigateToScript: function(scriptName) {
-		location.href = $j._scriptRouterURL + (scriptName ? "?" + scriptName : "");
+		location.href = $j._scriptsRouterURL + (scriptName ? "?" + scriptName : "");
 	},
 	
 	caching: {
@@ -689,12 +690,20 @@ var $j = {
 		The following methods are part of the core of jCombo.
 		Do not call these methods directly.
 	*/
-	sendRequest: function(jRequest) {
+	_sendCallRequest: function(appPath, jRequest, callRequest) {
 		var self = this;
+		var className = callRequest.className;
+		var method = callRequest.method;
+		
+		jRequest.data = "appPath=" + encodeURIComponent(appPath) + "&request=" + JSON.stringify(callRequest);
+		jRequest.dataType = "json";
+		
 		var proxyRequest = $.extend(true, {}, jRequest);
 		
 		self.onSuccess = function(data, textStatus, jqXHR) {
 			if(data.success) {
+				$j._triggerSuccessListeners(className, method, data.value, textStatus, jqXHR);
+				
 				if(jRequest.success) {
 					jRequest.success(data.value, textStatus, jqXHR);
 				}
@@ -702,11 +711,15 @@ var $j = {
 				if(proxyRequest.error) {
 					proxyRequest.error(jqXHR, textStatus, data.value);
 				}
-				throw $j.errors.serverGatewayError(data.value);
+				if(!jRequest.error) {
+					throw $j.errors.serverGatewayError(data.value);
+				}
 			}
 		}
 		
 		self.onError = function(jqXHR, textStatus, errorThrown) {
+			$j._triggerErrorListeners(className, method, errorThrown, textStatus, jqXHR);
+			
 			if(jRequest.error) {
 				jRequest.error(errorThrown, textStatus, jqXHR);
 			}
@@ -725,7 +738,7 @@ var $j = {
 		$.ajax(proxyRequest);
 	},
 	
-	/** 
+	/**
 		Call a static PHP method from JavaScript - The call will be performed asynchronously and any returned value will be passed
 		to the handler object.
 		@param string className The name of the PHP class to invoke
@@ -783,12 +796,10 @@ var $j = {
 			params: args
 		};
 		
-		jRequest.data = "appPath=" + encodeURIComponent($j._appPath) + "&request=" + JSON.stringify(request);
-		jRequest.dataType = "json";
-		$j.sendRequest(jRequest);
+		$j._sendCallRequest($j._appPath, jRequest, request);
 	},
 	
-	/** 
+	/**
 		Call a static PHP method from JavaScript - The call will be performed synchronously and any returned value will be returned by this method.
 		@param string className The name of the PHP class to invoke
 		@param string method The name of the static method of the specified class to call
@@ -825,10 +836,99 @@ var $j = {
 			params: args
 		};
 		
-		jRequest.data = "appPath=" + encodeURIComponent($j._appPath) + "&request=" + JSON.stringify(request);
-		jRequest.dataType = "json";
-		$j.sendRequest(jRequest);
+		$j._sendCallRequest($j._appPath, jRequest, request);
 		return response;
+	},
+	
+	_getListenerKey: function(className, method) {
+		return className + method;
+	},
+	
+	listen: function(className, method, resultHandler, errorHandler) {
+		var key = $j._getListenerKey(className, method);
+		if(!$j._callListeners.hasOwnProperty(key)) {
+			$j._callListeners[key] = [];
+		}
+		if(resultHandler.success) {
+			$j._callListeners[key].push(resultHandler);
+		} else {
+			$j._callListeners[key].push({'success': resultHandler, 'error': errorHandler});
+		}
+	},
+	
+	_getListener: function(className, method, resultHandler, errorHandler) {
+		var key = $j._getListenerKey(className, method);
+		if($j._callListeners[key]) {
+			var listeners = $j._callListeners[key];
+			var len = listeners.length;
+			var i;
+			for(i=0; i<len; i++) {
+				if(resultHandler.success) {
+					if(listeners[i].success == resultHandler.success) {
+						return listeners[i];
+					}
+				} else {
+					if(listeners[i].success == resultHandler) {
+						return listeners[i];
+					}
+				}
+			}
+		}
+		return null;
+	},
+	
+	isListening: function(className, method, resultHandler, errorHandler) {
+		return $j._getListener(className, method, resultHandler, errorHandler) ? true : false;
+	},
+	
+	_triggerSuccessListeners: function(className, method, data, textStatus, jqXHR) {
+		var key = $j._getListenerKey(className, method);
+		if($j._callListeners[key]) {
+			var listeners = $j._callListeners[key];
+			var len = listeners.length;
+			var i;
+			for(i=0; i<len; i++) {
+				if(listeners[i].success) {
+					listeners[i].success(data, textStatus, jqXHR);
+				}
+			}
+		}
+	},
+	
+	_triggerErrorListeners: function(className, method, errorThrown, textStatus, jqXHR) {
+		var key = $j._getListenerKey(className, method);
+		if($j._callListeners[key]) {
+			var listeners = $j._callListeners[key];
+			var len = listeners.length;
+			var i;
+			for(i=0; i<len; i++) {
+				if(listeners[i].error) {
+					listeners[i].error(errorThrown, textStatus, jqXHR);
+				}
+			}
+		}
+	},
+	
+	unlisten: function(className, method, resultHandler, errorHandler) {
+		var key = $j._getListenerKey(className, method);
+		if($j._callListeners[key]) {
+			var listeners = $j._callListeners[key];
+			var len = listeners.length;
+			var i;
+			for(i=0; i<len; i++) {
+				if(resultHandler.success) {
+					if(listeners[i].success == resultHandler.success) {
+						listeners.splice(i, 1);
+						break;
+					}
+				} else {
+					if(listeners[i].success == resultHandler) {
+						listeners.splice(i, 1);
+						break;
+					}
+				}
+			}
+		}
 	},
 	
 	validateCall: function(className, method, params) {
