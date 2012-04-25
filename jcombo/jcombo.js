@@ -701,9 +701,8 @@ var $j = {
 		var proxyRequest = $.extend(true, {}, jRequest);
 		
 		self.onSuccess = function(data, textStatus, jqXHR) {
+			$j._triggerSuccessListeners(data.interfaceLog, data.value, textStatus, jqXHR);
 			if(data.success) {
-				$j._triggerSuccessListeners(className, method, data.value, textStatus, jqXHR);
-				
 				if(jRequest.success) {
 					jRequest.success(data.value, textStatus, jqXHR);
 				}
@@ -718,7 +717,7 @@ var $j = {
 		}
 		
 		self.onError = function(jqXHR, textStatus, errorThrown) {
-			$j._triggerErrorListeners(className, method, errorThrown, textStatus, jqXHR);
+			$j._triggerErrorListeners([[className, method]], errorThrown, textStatus, jqXHR);
 			
 			if(jRequest.error) {
 				jRequest.error(errorThrown, textStatus, jqXHR);
@@ -841,10 +840,13 @@ var $j = {
 	},
 	
 	_getListenerKey: function(className, method) {
-		return className + method;
+		return className + '.' + method;
 	},
 	
 	listen: function(className, method, resultHandler, errorHandler) {
+		if(!className || !method || !resultHandler) {
+			throw "Exception: One or more required parameters were undefined";
+		}
 		var key = $j._getListenerKey(className, method);
 		if(!$j._callListeners.hasOwnProperty(key)) {
 			$j._callListeners[key] = [];
@@ -881,31 +883,34 @@ var $j = {
 		return $j._getListener(className, method, resultHandler, errorHandler) ? true : false;
 	},
 	
-	_triggerSuccessListeners: function(className, method, data, textStatus, jqXHR) {
-		var key = $j._getListenerKey(className, method);
-		if($j._callListeners[key]) {
-			var listeners = $j._callListeners[key];
+	_triggerListeners: function(eventKey, type, args) {
+		if($j._callListeners[eventKey]) {
+			var listeners = $j._callListeners[eventKey];
 			var len = listeners.length;
 			var i;
 			for(i=0; i<len; i++) {
-				if(listeners[i].success) {
-					listeners[i].success(data, textStatus, jqXHR);
+				if(listeners[i][type]) {
+					listeners[i][type].apply(null, args);
 				}
 			}
 		}
 	},
 	
-	_triggerErrorListeners: function(className, method, errorThrown, textStatus, jqXHR) {
-		var key = $j._getListenerKey(className, method);
-		if($j._callListeners[key]) {
-			var listeners = $j._callListeners[key];
-			var len = listeners.length;
-			var i;
-			for(i=0; i<len; i++) {
-				if(listeners[i].error) {
-					listeners[i].error(errorThrown, textStatus, jqXHR);
-				}
-			}
+	_triggerSuccessListeners: function(interfaceCallLog, data, textStatus, jqXHR) {
+		var len = interfaceCallLog.length;
+		var i, key;
+		for(i=0; i<len; i++) {
+			key = $j._getListenerKey(interfaceCallLog[i][0], interfaceCallLog[i][1]);
+			$j._triggerListeners(key, 'success', [data, textStatus, jqXHR]);
+		}
+	},
+	
+	_triggerErrorListeners: function(interfaceCallLog, errorThrown, textStatus, jqXHR) {
+		var len = interfaceCallLog.length;
+		var i, key;
+		for(i=0; i<len; i++) {
+			key = $j._getListenerKey(interfaceCallLog[i][0], interfaceCallLog[i][1]);
+			$j._triggerListeners(key, 'error', [errorThrown, textStatus, jqXHR]);
 		}
 	},
 	

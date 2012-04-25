@@ -3,6 +3,8 @@
 * This class helps facilitate the task of accessing server-side PHP classes via AJAX using JSON requests.
 */
 
+require_once(dirname(__FILE__).'/ServerInterface.php');
+
 class ServerGateway {
 	private static $request;
 	private static $error;
@@ -61,6 +63,8 @@ class ServerGateway {
 		if(count(self::$request['params']) < $reqNumParams) {
 			throw new IncorrectParamsException(self::$request['className'], self::$request['method']);
 		}
+		
+		ServerInterface::_resetCallLog();
 		
 		if(self::$crossDomain) {
 			$className = self::$request['className'];
@@ -122,7 +126,8 @@ class ServerGateway {
 	*/
 	public static function respond($object, $success=true) {
 		header('Content-type: application/json');
-		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).'}';
+		$interfaceLog = ServerInterface::_getCallSet();
+		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).',"interfaceLog":'.json_encode($interfaceLog).'}';
 		exit;
 	}
 }

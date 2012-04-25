@@ -7,5 +7,6 @@
 
 require_once(dirname(__FILE__).'/config.php');
 require_once(JC_FRAMEWORK_DIR.'core/Cacher.php');
+require_once(JC_FRAMEWORK_DIR.'core/ServerInterface.php');
 require_once(JC_FRAMEWORK_DIR.'core/ServerInterfaceDescriptor.php');
 ?>
