@@ -64,19 +64,19 @@ class ServerGateway {
 			throw new IncorrectParamsException(self::$request['className'], self::$request['method']);
 		}
 		
-		ServerInterface::_resetCallLog();
+		ServerInterface::resetCallLog();
 		
 		if(self::$crossDomain) {
 			$className = self::$request['className'];
 			$methodName = self::$request['method'];
 			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
 					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
-				$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
+				$result = ServerInterface::call(self::$request['className'], self::$request['method'], self::$request['params']);
 			} else {
 				throw new InvalidCrossDomainCallException($className, $methodName);
 			}
 		} else {
-			$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
+			$result = ServerInterface::call(self::$request['className'], self::$request['method'], self::$request['params']);
 		}
 		self::respond($result);
 	}
@@ -126,7 +126,7 @@ class ServerGateway {
 	*/
 	public static function respond($object, $success=true) {
 		header('Content-type: application/json');
-		$interfaceLog = ServerInterface::_getCallSet();
+		$interfaceLog = ServerInterface::getCallSet();
 		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).',"interfaceLog":'.json_encode($interfaceLog).'}';
 		exit;
 	}

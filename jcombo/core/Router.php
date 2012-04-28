@@ -45,6 +45,8 @@ class Router {
 		
 		self::$jsPluginFiles = array();
 		
+		require_once(self::$applicationDirPath.'prepare.php');
+		
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
 		self::includeDefaultPluginsJS();

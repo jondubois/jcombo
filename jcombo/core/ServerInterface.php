@@ -1,13 +1,24 @@
 <?php
 class ServerInterface {
 	private static $callLog;
-	final public static function _resetCallLog() {
+	public static function call($className, $method, Array $args) {
+		include_once(JC_INTERFACES_DIR.$className.'.php');
+		if(!isset(self::$callLog)) {
+			self::$callLog = array();
+		}
+		self::$callLog[] = array($className, $method);
+		return @call_user_func_array("$className::$method", $args);
+	}
+	public static function resetCallLog() {
 		self::$callLog = array();
 	}
-	final public static function _getCallLog() {
+	public static function getCallLog() {
+		if(!isset(self::$callLog)) {
+			return array();
+		}
 		return self::$callLog;
 	}
-	final public static function _getCallSet() {
+	public static function getCallSet() {
 		if(!isset(self::$callLog)) {
 			return array();
 		}
@@ -23,19 +34,6 @@ class ServerInterface {
 			}
 		}
 		return $set;
-	}
-	
-	public static function __callStatic($method, $args) {
-		$className = get_called_class();
-		if(method_exists($className, $method)) {
-			$result = @call_user_func_array("$className::$method", $args);
-			if(isset(self::$callLog)) {
-				self::$callLog[] = array($className, $method);
-			}
-			return $result;
-		} else {
-			throw new Exception("The ServerInterface class $className does not have a $method method");
-		}
 	}
 }
 ?>

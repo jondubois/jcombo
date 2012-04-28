@@ -19,7 +19,7 @@ class ServerInterfaceDescriptor {
 				
 				foreach($reflectMethods as $reflectMethod) {
 					$methodObject = new stdClass();
-					$methodObject->methodName = $reflectMethod->getName();
+					$methodObject->methodName = preg_replace('/^_/', '', $reflectMethod->getName());
 					$methodObject->requiredParams = array();
 					
 					$reflectParams = $reflectMethod->getParameters();
