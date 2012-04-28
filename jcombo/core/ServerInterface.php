@@ -1,7 +1,7 @@
 <?php
 class ServerInterface {
 	private static $callLog;
-	public static function call($className, $method, Array $args) {
+	public static function call($className, $method, Array $args=array()) {
 		include_once(JC_INTERFACES_DIR.$className.'.php');
 		if(!isset(self::$callLog)) {
 			self::$callLog = array();
