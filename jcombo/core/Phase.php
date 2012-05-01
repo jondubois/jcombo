@@ -1,6 +1,6 @@
 <?php
 class Phase {
-	const ROUTER = 'router';
+	const INIT = 'init';
 	const WEB_SERVICE = 'webservice';
 	const SERVER_SERVICE = 'serverservice';
 	

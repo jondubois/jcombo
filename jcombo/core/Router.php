@@ -45,7 +45,7 @@ class Router {
 		
 		self::$jsPluginFiles = array();
 		
-		Phase::setPhase(Phase::ROUTER);
+		Phase::setPhase(Phase::INIT);
 		
 		require_once(self::$applicationDirPath.'prepare.php');
 		
