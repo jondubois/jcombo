@@ -25,6 +25,8 @@ register_shutdown_function(array('ServerGateway', 'handleShutdown'));
 set_error_handler(array('ServerGateway', 'handleError'));
 set_exception_handler(array('ServerGateway', 'handleException'));
 
+Phase::setPhase(Phase::WEB_SERVICE);
+
 require_once(JC_APP_DIR.'prepare.php');
 
 if(isset($_POST['request'])) {

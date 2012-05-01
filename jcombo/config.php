@@ -28,6 +28,7 @@ define('JC_LIB_JS_URL', PathManager::convertPathToURL(JC_LIB_JS_DIR));
 // define the root URL of jCombo's default styles directory
 define('JC_FRAMEWORK_STYLES_URL', PathManager::convertPathToURL(JC_FRAMEWORK_STYLES_DIR));
 
+require_once(JC_FRAMEWORK_DIR.'core/Phase.php');
 require_once(JC_FRAMEWORK_DIR.'core/Router.php');
 
 // define the root URL of jCombo on this server

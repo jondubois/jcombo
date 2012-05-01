@@ -6,6 +6,7 @@
 */
 class PDOAdapter {
 	private $store;
+	private $defaultResultType;
 	
 	/**
 	* Instantiate a new PDOAdapter. This constructor is an exact match to that of PHP's PDO class.
@@ -17,9 +18,18 @@ class PDOAdapter {
 	public function __construct($dsn, $username='', $password='', $options=array()) {
 		$this->store = new PDO($dsn, $username, $password, $options);
 		$this->store->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$this->defaultResultType = PDO::FETCH_BOTH;
 	}
 	
-	public function quickSelect($tableName, $fields=false, $whereCondition=false, $startIndex=0, $numElements=false, $resultType=PDO::FETCH_BOTH) {
+	public function setDefaultResultType($resultType) {
+		$this->defaultResultType = $resultType;
+	}
+	
+	public function quickSelect($tableName, $fields=false, $whereCondition=false, $startIndex=0, $numElements=false, $resultType=null) {
+		if(!$resultType) {
+			$resultType = $this->defaultResultType;
+		}
+		
 		$tableName = $this->escape($tableName);
 		
 		$newField = array();
@@ -134,7 +144,11 @@ class PDOAdapter {
 	* @param int $resultType The type of array to return. Valid values include PDO::FETCH_NUM, PDO::FETCH_ASSOC or PDO::FETCH_BOTH
 	* @return array An array of query results. The exact type of the array (associative, numeric, or both) depends on the $resultType parameter
 	*/
-	public function arrayQuery($sql, $resultType=PDO::FETCH_BOTH) {
+	public function arrayQuery($sql, $resultType=null) {
+		if(!$resultType) {
+			$resultType = $this->defaultResultType;
+		}
+		
 		$list = array();
 		$result = @$this->store->query($sql, $resultType);
 		if($result) {
@@ -171,7 +185,10 @@ class PDOAdapter {
 	* @param int $resultType The type of object to return. Valid values include PDO::FETCH_NUM, PDO::FETCH_ASSOC or PDO::FETCH_BOTH
 	* @return mixed The first row in the result set. The exact type of this object (associative, numeric, or both) depends on the $resultType parameter
 	*/
-	public function firstRowQuery($sql, $resultType=PDO::FETCH_BOTH) {
+	public function firstRowQuery($sql, $resultType=null) {
+		if(!$resultType) {
+			$resultType = $this->defaultResultType;
+		}
 		$list = $this->arrayQuery($sql, $resultType);
 		if(isset($list[0])) {
 			return $list[0];

@@ -17,6 +17,9 @@ define('JC_APP_DIR', $relDir);
 
 require_once(JC_APP_DIR.'config.php');
 require_once(dirname(__FILE__).'/ServerInterface.php');
+
+Phase::setPhase(Phase::SERVER_SERVICE);
+
 require_once(JC_APP_DIR.'prepare.php');
 
 ?>
