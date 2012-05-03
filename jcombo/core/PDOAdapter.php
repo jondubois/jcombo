@@ -1,10 +1,17 @@
 <?php
+require_once(dirname(__FILE__).'/EventEmitter.php');
+
 /**
 * The PDOAdapter class is a wrapper for PHP's PDO class which is optimized for use within jCombo.
 * It serves as an interface to a variety of databases - It returns simple datatypes such as integers, strings and arrays which
 * can be easily converted to JSON.
 */
-class PDOAdapter {
+class PDOAdapter extends EventEmitter {
+	const SELECT_EVENT = 'select';
+	const UPDATE_EVENT = 'update';
+	const DELETE_EVENT = 'delete';
+	const INSERT_EVENT = 'insert';
+	
 	private $store;
 	private $defaultResultType;
 	
@@ -138,6 +145,29 @@ class PDOAdapter {
 		return $this->exec($query);
 	}
 	
+	private function triggerSQLEvent($sql) {
+		
+		preg_match('/^ *(select|update|insert|delete) /i', $sql, $matches);
+		if($matches) {
+			$matches = strtolower($matches[0]);
+			$event = null;
+			
+			if($matches == 'select ') {
+				$event = PDOAdapter::SELECT_EVENT;
+			} else if($matches == 'insert ') {
+				$event = PDOAdapter::INSERT_EVENT;
+			} else if($matches == 'update ') {
+				$event = PDOAdapter::UPDATE_EVENT;
+			} else if($matches == 'delete ') {
+				$event = PDOAdapter::DELETE_EVENT;
+			}
+			
+			if($event) {
+				$this->trigger($event);
+			}
+		}
+	}
+	
 	/**
 	* Execute a query and return a multidimensional array containing all results.
 	* @param string $sql An SQL query to execute
@@ -159,6 +189,9 @@ class PDOAdapter {
 				array_push($list, $res);
 			}
 		}
+		
+		$this->triggerSQLEvent($sql);
+		
 		return $list;
 	}
 	
@@ -176,6 +209,9 @@ class PDOAdapter {
 				array_push($list, $res[0]);
 			}
 		}
+		
+		$this->triggerSQLEvent($sql);
+		
 		return $list;
 	}
 	
@@ -190,6 +226,9 @@ class PDOAdapter {
 			$resultType = $this->defaultResultType;
 		}
 		$list = $this->arrayQuery($sql, $resultType);
+		
+		$this->triggerSQLEvent($sql);
+		
 		if(isset($list[0])) {
 			return $list[0];
 		} else {
@@ -203,7 +242,9 @@ class PDOAdapter {
 	* @return boolean A boolean indicating whether or not the query was executed successfully
 	*/
 	public function exec($sql) {
-		return $this->store->exec($sql);
+		$result = $this->store->exec($sql);
+		$this->triggerSQLEvent($sql);
+		return $result;
 	}
 	
 	/**
@@ -216,6 +257,7 @@ class PDOAdapter {
 		if(!$result) {
 			return false;
 		}
+		$this->triggerSQLEvent($sql);
 		return self::autocastString($result->fetchColumn(0));
 	}
 	

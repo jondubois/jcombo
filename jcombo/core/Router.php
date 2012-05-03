@@ -1,4 +1,6 @@
 <?php
+require_once(dirname(__FILE__).'/PDOAdapter.php');
+
 /**
 * The purpose of the Router class is to define running conditions for the application and to control the routing of scripts.
 */
@@ -512,7 +514,7 @@ class Router {
 		if(isset($error)) {
 			ob_clean();
 			self::reportError($error);
-			echo self::getErrorTempalte();
+			echo self::getErrorTemplate();
 		}
 	}
 	
@@ -555,7 +557,7 @@ class Router {
 		return true;
 	}
 	
-	private function getErrorTempalte() {
+	private function getErrorTemplate() {
 		$html = "<!DOCTYPE html><head><title>jCombo Server Error</title></head><body></body>";
 		return $html;
 	}

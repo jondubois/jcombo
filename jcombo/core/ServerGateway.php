@@ -64,7 +64,7 @@ class ServerGateway {
 			throw new IncorrectParamsException(self::$request['className'], self::$request['method']);
 		}
 		
-		ServerInterface::resetCallLog();
+		ServerInterface::clearTriggeredEvents();
 		
 		if(self::$crossDomain) {
 			$className = self::$request['className'];
@@ -126,8 +126,8 @@ class ServerGateway {
 	*/
 	public static function respond($object, $success=true) {
 		header('Content-type: application/json');
-		$interfaceLog = ServerInterface::getCallSet();
-		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).',"interfaceLog":'.json_encode($interfaceLog).'}';
+		$eventLog = ServerInterface::getTriggeredEvents();
+		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).',"eventLog":'.json_encode($eventLog).'}';
 		exit;
 	}
 }

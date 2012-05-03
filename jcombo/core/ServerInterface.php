@@ -1,37 +1,36 @@
 <?php
 class ServerInterface {
-	private static $callLog;
+	private static $eventLog = null;
 	public static function call($className, $method, Array $args=array()) {
 		include_once(JC_INTERFACES_DIR.$className.'.php');
-		if(!isset(self::$callLog)) {
-			self::$callLog = array();
-		}
-		self::$callLog[] = array($className, $method);
 		return @call_user_func_array("$className::$method", $args);
 	}
-	public static function resetCallLog() {
-		self::$callLog = array();
-	}
-	public static function getCallLog() {
-		if(!isset(self::$callLog)) {
-			return array();
+	
+	public static function classTrigger($className, $event) {
+		if(self::$eventLog == null) {
+			self::$eventLog = array();
 		}
-		return self::$callLog;
+		self::$eventLog["$className.$event"] = true;
 	}
-	public static function getCallSet() {
-		if(!isset(self::$callLog)) {
-			return array();
+	
+	public static function trigger($event) {
+		if(self::$eventLog == null) {
+			self::$eventLog = array();
 		}
-		$map = array();
+		self::$eventLog[$event] = true;
+	}
+	
+	public static function clearTriggeredEvents() {
+		self::$eventLog = array();
+	}
+	public static function getTriggeredEvents() {
 		$set = array();
-		foreach(self::$callLog as $call) {
-			if(!isset($map[$call[0]])) {
-				$map[$call[0]] = array();
-			}
-			if(!isset($map[$call[0]][$call[1]])) {
-				$set[] = $call;
-				$map[$call[0]][$call[1]] = true;
-			}
+		if(self::$eventLog == null) {
+			return $set;
+		}
+		
+		foreach(self::$eventLog as $key => $value) {
+			$set[] = $key;
 		}
 		return $set;
 	}
