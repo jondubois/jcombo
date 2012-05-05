@@ -71,12 +71,12 @@ class ServerGateway {
 			$methodName = self::$request['method'];
 			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
 					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
-				$result = ServerInterface::call(self::$request['className'], self::$request['method'], self::$request['params']);
+				$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
 			} else {
 				throw new InvalidCrossDomainCallException($className, $methodName);
 			}
 		} else {
-			$result = ServerInterface::call(self::$request['className'], self::$request['method'], self::$request['params']);
+			$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
 		}
 		self::respond($result);
 	}

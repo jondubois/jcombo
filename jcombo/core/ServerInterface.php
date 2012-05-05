@@ -6,6 +6,10 @@ class ServerInterface {
 		return @call_user_func_array("$className::$method", $args);
 	}
 	
+	public static function get($className) {
+		require_once(JC_INTERFACES_DIR.$className.'.php');
+	}
+	
 	public static function classTrigger($className, $event) {
 		if(self::$eventLog == null) {
 			self::$eventLog = array();

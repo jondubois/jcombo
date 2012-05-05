@@ -6,6 +6,4 @@
 * access to your server interfaces. Note that the PHP $_SESSION variable and the ServerGateway class are accessible throughout this file.
 */
 
-Router::includeLibPHP('jcomboutils/*');
-
 ?>

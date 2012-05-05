@@ -73,12 +73,6 @@ class Router {
 		$jsIncludes[] = $initScriptURL;
 		$jsIncludes = array_merge($jsIncludes, self::$jsPluginFiles);
 		
-		$unchanged = false;
-		if(isset($_SESSION['loadedFiles'])) {
-			$unchanged = self::isSubset($_SESSION['loadedFiles']['js'], $jsIncludes) && 
-					self::isSubset($_SESSION['loadedFiles']['css'], self::$cssFiles);
-		}
-		
 		$defaultFile = JC_MAIN_SCRIPT;
 		$notFoundFile = JC_NOT_FOUND_SCRIPT;
 		$notAccessibleFile = JC_NOT_ACCESSIBLE_SCRIPT;
@@ -151,14 +145,7 @@ class Router {
 					'", frameworkStylesURL:"'.JC_FRAMEWORK_STYLES_URL.'", serverGatewayURL:"'.JC_SERVER_GATEWAY_URL.'", appScriptsURL:"'.JC_SCRIPTS_URL.
 					'", appStylesURL:"'.JC_STYLES_URL.'", appTemplatesURL:"'.JC_TEMPLATES_URL.'", appAssetsURL:"'.JC_ASSETS_URL.'", appFilesURL:"'.JC_FILES_URL.'"}';
 		
-		
-		if(isset($_SESSION['jcLoaded']) && $unchanged) {
-			$skipPreload = 'true';
-		} else {
-			$skipPreload = 'false';
-		}
-		
-		self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", "'.$scriptFileURL.'", "'.$loadScriptURL.'", '.$includeResoucesArg.', '.$appInitArgs.', '.$skipPreload.');</script>';
+		self::$headCode .= '<script type="text/javascript">$loader.init("'.JC_FRAMEWORK_URL.'", "'.$scriptFileURL.'", "'.$loadScriptURL.'", '.$includeResoucesArg.', '.$appInitArgs.', false);</script>';
 		self::$headCode .= "\n";
 	}
 	
