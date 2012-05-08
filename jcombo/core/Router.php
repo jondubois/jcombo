@@ -23,7 +23,9 @@ class Router {
 	* @param string $applicationDirPath An absolute or relative path to the application's root directory.
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
-	public static function init($applicationDirPath, $logErrors=true) {
+	public static function init($applicationDirPath, $debugMode=true, $logErrors=true) {
+		$_SESSION['debugMode'] = $debugMode;
+		
 		ob_start(array('Router', 'outputBuffer'));
 		
 		self::$error = false;
@@ -131,9 +133,6 @@ class Router {
 		if($storedInterfaceDesc != $interfaceDesc) {
 			file_put_contents($serverInterfacesPath, $interfaceDesc, LOCK_EX);
 		}
-		
-		// this is to keep track of changes made to code in the middle a user's session
-		$_SESSION['loadedFiles'] = array('js'=>$jsIncludes, 'css'=>self::$cssFiles);
 		
 		self::embedScript(JC_FRAMEWORK_URL.'loader.js');
 		
@@ -424,8 +423,12 @@ class Router {
 	}
 	
 	public static function compileExceptionMessage($exception) {
-		$backtrace = $exception->getTraceAsString();
-		return '['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
+		if(isset($_SESSION['debugMode']) && $_SESSION['debugMode']) {
+			$backtrace = $exception->getTraceAsString();
+			return 'ServerGatewayError: ['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
+		} else {
+			return $exception->getMessage();
+		}
 	}
 	
 	private static function errorNumberToString($errorNumber) {

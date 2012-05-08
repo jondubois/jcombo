@@ -139,11 +139,7 @@ var $j = {
 		Each function handles a specific type of error and can accept any suitable number of parameters
 		in order to generate the appropriate error message.
 	*/
-	errors: {
-		serverGatewayError: function(message) {
-			return "ServerGatewayError: " + message;
-		},
-		
+	errors: {		
 		loadTemplateError: function(message) {
 			return "LoadTemplateError: Could not load one or more templates because of the following AJAX error: " + message;
 		},
@@ -711,7 +707,7 @@ var $j = {
 					proxyRequest.error(jqXHR, textStatus, data.value);
 				}
 				if(!jRequest.error) {
-					throw $j.errors.serverGatewayError(data.value);
+					throw data.value;
 				}
 			}
 		}
