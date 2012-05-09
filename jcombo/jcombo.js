@@ -16,7 +16,7 @@ var $j = {
 	_cacheSeverCalls: false,
 	_cacheTemplates: true,
 	_callbacks: {},
-	_callListeners: {},
+	_serverWatchers: {},
     
 	init: function(appDefinition) {
 		$j._appPath = appDefinition.appPath;
@@ -697,7 +697,7 @@ var $j = {
 		var proxyRequest = $.extend(true, {}, jRequest);
 		
 		self.onSuccess = function(data, textStatus, jqXHR) {
-			$j._triggerSuccessListeners(data.eventLog, data.value, textStatus, jqXHR);
+			$j._triggerSuccessWatchers(data.eventLog, data.value, textStatus, jqXHR);
 			if(data.success) {
 				if(jRequest.success) {
 					jRequest.success(data.value, textStatus, jqXHR);
@@ -713,7 +713,7 @@ var $j = {
 		}
 		
 		self.onError = function(jqXHR, textStatus, errorThrown) {
-			$j._triggerErrorListeners([$j._getListenerKey(className, method)], errorThrown, textStatus, jqXHR);
+			$j._triggerErrorWatchers([$j._getListenerKey(className, method)], errorThrown, textStatus, jqXHR);
 			
 			if(jRequest.error) {
 				jRequest.error(errorThrown, textStatus, jqXHR);
@@ -844,45 +844,45 @@ var $j = {
 			throw "Exception: One or more required parameters were undefined";
 		}
 		var event = $j._getListenerKey(className, event);
-		$j.listen(event, resultHandler, errorHandler);
+		$j.watch(event, resultHandler, errorHandler);
 	},
 	
 	unwatchClass: function(className, event, resultHandler, errorHandler) {
 		var event = $j._getListenerKey(className, event);
-		$j.unlisten(event, resultHandler, errorHandler);
+		$j.unwatch(event, resultHandler, errorHandler);
 	},
 	isWatchingClass: function(className, event, resultHandler, errorHandler) {
 		var event = $j._getListenerKey(className, event);
 		return $j.isListening(event, resultHandler, errorHandler);
 	},
 	
-	listen: function(event, resultHandler, errorHandler) {
+	watch: function(event, resultHandler, errorHandler) {
 		if(!event || !resultHandler) {
 			throw "Exception: One or more required parameters were undefined";
 		}
-		if(!$j._callListeners.hasOwnProperty(event)) {
-			$j._callListeners[event] = [];
+		if(!$j._serverWatchers.hasOwnProperty(event)) {
+			$j._serverWatchers[event] = [];
 		}
 		if(resultHandler.success) {
-			$j._callListeners[event].push(resultHandler);
+			$j._serverWatchers[event].push(resultHandler);
 		} else {
-			$j._callListeners[event].push({'success': resultHandler, 'error': errorHandler});
+			$j._serverWatchers[event].push({'success': resultHandler, 'error': errorHandler});
 		}
 	},
 	
 	_getListener: function(event, resultHandler, errorHandler) {
-		if($j._callListeners[event]) {
-			var listeners = $j._callListeners[event];
-			var len = listeners.length;
+		if($j._serverWatchers[event]) {
+			var watchers = $j._serverWatchers[event];
+			var len = watchers.length;
 			var i;
 			for(i=0; i<len; i++) {
 				if(resultHandler.success) {
-					if(listeners[i].success == resultHandler.success) {
-						return listeners[i];
+					if(watchers[i].success == resultHandler.success) {
+						return watchers[i];
 					}
 				} else {
-					if(listeners[i].success == resultHandler) {
-						return listeners[i];
+					if(watchers[i].success == resultHandler) {
+						return watchers[i];
 					}
 				}
 			}
@@ -894,49 +894,49 @@ var $j = {
 		return $j._getListener(event, resultHandler, errorHandler) ? true : false;
 	},
 	
-	_triggerListeners: function(event, type, args) {
-		if($j._callListeners[event]) {
-			var listeners = $j._callListeners[event];
-			var len = listeners.length;
+	_triggerWatchers: function(event, type, args) {
+		if($j._serverWatchers[event]) {
+			var watchers = $j._serverWatchers[event];
+			var len = watchers.length;
 			var i;
 			for(i=0; i<len; i++) {
-				if(listeners[i][type]) {
-					listeners[i][type].apply(null, args);
+				if(watchers[i][type]) {
+					watchers[i][type].apply(null, args);
 				}
 			}
 		}
 	},
 	
-	_triggerSuccessListeners: function(eventLog, data, textStatus, jqXHR) {
+	_triggerSuccessWatchers: function(eventLog, data, textStatus, jqXHR) {
 		var len = eventLog.length;
 		var i;
 		for(i=0; i<len; i++) {
-			$j._triggerListeners(eventLog[i], 'success', [data, textStatus, jqXHR]);
+			$j._triggerWatchers(eventLog[i], 'success', [data, textStatus, jqXHR]);
 		}
 	},
 	
-	_triggerErrorListeners: function(eventLog, errorThrown, textStatus, jqXHR) {
+	_triggerErrorWatchers: function(eventLog, errorThrown, textStatus, jqXHR) {
 		var len = eventLog.length;
 		var i;
 		for(i=0; i<len; i++) {
-			$j._triggerListeners(eventLog[i], 'error', [errorThrown, textStatus, jqXHR]);
+			$j._triggerWatchers(eventLog[i], 'error', [errorThrown, textStatus, jqXHR]);
 		}
 	},
 	
-	unlisten: function(event, resultHandler, errorHandler) {
-		if($j._callListeners[event]) {
-			var listeners = $j._callListeners[event];
-			var len = listeners.length;
+	unwatch: function(event, resultHandler, errorHandler) {
+		if($j._serverWatchers[event]) {
+			var watchers = $j._serverWatchers[event];
+			var len = watchers.length;
 			var i;
 			for(i=0; i<len; i++) {
 				if(resultHandler.success) {
-					if(listeners[i].success == resultHandler.success) {
-						listeners.splice(i, 1);
+					if(watchers[i].success == resultHandler.success) {
+						watchers.splice(i, 1);
 						break;
 					}
 				} else {
-					if(listeners[i].success == resultHandler) {
-						listeners.splice(i, 1);
+					if(watchers[i].success == resultHandler) {
+						watchers.splice(i, 1);
 						break;
 					}
 				}

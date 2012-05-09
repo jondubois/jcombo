@@ -39,14 +39,14 @@ class PDOAdapter extends EventEmitter {
 		
 		$tableName = $this->escape($tableName);
 		
-		$newField = array();
+		$newFields = array();
 		$query = "SELECT";
 		
 		if($fields && count($fields) > 0) {
 			foreach($fields as $field) {
-				$newField[] = $this->escape($field);
+				$newFields[] = $this->escape($field);
 			}
-			$query .= ' '.implode(',', $newField);
+			$query .= ' '.implode(',', $newFields);
 		} else {
 			$query .= " *";
 		}

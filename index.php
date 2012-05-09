@@ -1,6 +1,6 @@
 <?php 
 include_once('jcombo/jcombo.php');
-Router::init('application/');
+Router::init('application/', true);
 Router::useScript('index');
 Router::exec();
 ?>

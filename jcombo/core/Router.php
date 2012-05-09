@@ -24,7 +24,7 @@ class Router {
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
 	public static function init($applicationDirPath, $debugMode=true, $logErrors=true) {
-		$_SESSION['debugMode'] = $debugMode;
+		$_SESSION['jcDebugMode'] = $debugMode;
 		
 		ob_start(array('Router', 'outputBuffer'));
 		
@@ -423,7 +423,7 @@ class Router {
 	}
 	
 	public static function compileExceptionMessage($exception) {
-		if(isset($_SESSION['debugMode']) && $_SESSION['debugMode']) {
+		if(isset($_SESSION['jcDebugMode']) && $_SESSION['jcDebugMode']) {
 			$backtrace = $exception->getTraceAsString();
 			return 'ServerGatewayError: ['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
 		} else {

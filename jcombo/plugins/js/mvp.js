@@ -91,8 +91,27 @@ $j.mvp = {
 		}
 		
 		self._templateString = template;
-		self._template = Handlebars.compile(template);
+		self._mainTemplate = Handlebars.compile(template);
+		self._template = self._mainTemplate;
 		self._data = {};
+		
+		self.cover = function(view) {
+			self._template = view.getTemplate();
+			if(self.isInDOM()) {
+				self._update();
+			}
+		}
+		
+		self.uncover = function() {
+			self._template = self._mainTemplate;
+			if(self.isInDOM()) {
+				self._update();
+			}
+		}
+		
+		self.getTemplate = function() {
+			return self._template;
+		}
 		
 		self.getID = function() {
 			return self._id;

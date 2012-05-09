@@ -146,25 +146,7 @@ var $loader = {
 	},
 	
 	finish: function() {
-		var jcLoadedScript = $loader._frameworkURL + "core/jcloaded.php";
-		
-		var xmlhttp = $loader._getHTTPReqObject();
-		xmlhttp.open("GET", jcLoadedScript, true);
-		xmlhttp.onreadystatechange = function() {
-			if(xmlhttp.readyState == 4) {
-				if(xmlhttp.status == 200) {
-					// refresh Router - Now that the script is in cache, Router will launch the app
-					$loader._embedAllResources();
-				} else {
-					if(++$loader._attempts < $loader.MAX_ATTEMPTS) {
-						// try again
-						$loader.finish();
-					}
-				}
-			}
-		}
-		// set the jcLoaded session variable to true to inform Router that the app is loaded
-		xmlhttp.send();
+		$loader._embedAllResources();
 	},
 	
 	ajax: function(settings) {

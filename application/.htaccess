@@ -1,2 +1,2 @@
 RewriteEngine on
-RewriteRule ^(.*\.(js|css|jpg|png|gif))$ appdata/resourcecacher.php?resource=$1 [L]
+RewriteRule ^(.*\.(js|css|jpg|png|gif|handlebars))$ appdata/resourcecacher.php?resource=$1 [L]
