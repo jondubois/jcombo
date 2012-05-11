@@ -14,6 +14,7 @@ class PDOAdapter extends EventEmitter {
 	
 	private $store;
 	private $defaultResultType;
+	private $prepMacros;
 	
 	/**
 	* Instantiate a new PDOAdapter. This constructor is an exact match to that of PHP's PDO class.
@@ -26,6 +27,7 @@ class PDOAdapter extends EventEmitter {
 		$this->store = new PDO($dsn, $username, $password, $options);
 		$this->store->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$this->defaultResultType = PDO::FETCH_BOTH;
+		$this->prepMacros = array('QUOTE' => array($this, 'quote'));
 	}
 	
 	public function setDefaultResultType($resultType) {
@@ -37,14 +39,12 @@ class PDOAdapter extends EventEmitter {
 			$resultType = $this->defaultResultType;
 		}
 		
-		$tableName = $this->escape($tableName);
-		
 		$newFields = array();
 		$query = "SELECT";
 		
 		if($fields && count($fields) > 0) {
 			foreach($fields as $field) {
-				$newFields[] = $this->escape($field);
+				$newFields[] = $field;
 			}
 			$query .= ' '.implode(',', $newFields);
 		} else {
@@ -76,14 +76,12 @@ class PDOAdapter extends EventEmitter {
 	}
 	
 	public function quickInsert($tableName, $fieldValueMap, $whereCondition=false) {
-		$tableName = $this->escape($tableName);
-	
 		$fields = array();
 		$values = array();
 		
 		foreach($fieldValueMap as $key => $value) {
-			$fields[] = $this->escape($key);
-			$values[] = $this->quote($value);
+			$fields[] = $key;
+			$values[] = $this->quoteOnce($value);
 		}
 		
 		if(count($fields) < 1) {
@@ -102,12 +100,10 @@ class PDOAdapter extends EventEmitter {
 	}
 	
 	public function quickUpdate($tableName, $fieldValueMap, $whereCondition=false) {
-		$tableName = $this->escape($tableName);
-	
 		$expressions = array();
 		
 		foreach($fieldValueMap as $key => $value) {
-			$expressions[] = $this->escape($key).'='.$this->quote($value);
+			$expressions[] = $key.'='.$this->quoteOnce($value);
 		}
 		
 		if(count($expressions) < 1) {
@@ -132,12 +128,10 @@ class PDOAdapter extends EventEmitter {
 			throw new Exception('The $andOrOr parameter must be either \'AND\' or \'OR\'');
 		}
 		
-		$tableName = $this->escape($tableName);
-		
 		$expressions = array();
 		
 		foreach($fieldValueMap as $key => $value) {
-			$expressions[] = $this->escape($key).'='.$this->quote($value);
+			$expressions[] = $key.'='.$this->quoteOnce($value);
 		}
 		
 		$query = "DELETE FROM $tableName WHERE ".implode(" $andOrOr ", $expressions).";";
@@ -168,6 +162,105 @@ class PDOAdapter extends EventEmitter {
 		}
 	}
 	
+	private function isAlphaNumeric($char) {
+		$ascii = ord($char);
+		$isUpperAlpha = $ascii > 64 && $ascii < 91;
+		$isLowerAlpha = $ascii > 96 && $ascii < 123;
+		$isNum = $ascii > 47 && $ascii < 58;
+		
+		return $isUpperAlpha || $isLowerAlpha || $isNum;
+	}
+	
+	public function prepare($sql) {
+		$sqlArray = str_split($sql);
+		$searching = true;
+		$curWord = '';
+		$preInput = '';
+		$openedBrackets = 0;
+		$complete = false;
+		
+		$newString = '';
+		$num = count($sqlArray);
+
+		for($i=0; $i<$num; $i++) {
+			$char = $sqlArray[$i];
+			
+			if($char == "'") {
+				$searching ^= true;
+			}
+			
+			if(!$this->isAlphaNumeric($char)) {
+				if(array_key_exists($curWord, $this->prepMacros)) {
+					$complete = false;
+					$preInput = '';
+					$preInputStartIndex = $i;
+					while($char == ' ' && $i<$num) {
+						$char = $sqlArray[$i++];
+						$preInput .= $char;
+					}
+					
+					if($i>=$num-1) {
+						$newString .= $curWord.$preInput;
+						break;
+					}
+					
+					if($char == '(') {
+						$openedBrackets = 1;
+						$input = '';
+						$preInput .= $char;
+						while($i<$num-1) {
+							$char = $sqlArray[++$i];
+							if($char == '(') {
+								$openedBrackets++;
+							} else if($char == ')') {
+								$openedBrackets--;
+							}
+							if($openedBrackets > 0) {
+								$input .= $char;
+							} else {
+								$curWord = call_user_func($this->prepMacros[$curWord], $input);
+								$complete = true;
+								break;
+							}
+						}
+						
+						if($i<$num-1) {
+							$char = $sqlArray[++$i];
+						} else {
+							if($complete) {
+								$newString .= $curWord;
+							} else {
+								$newString .= $curWord.$preInput.$input;
+							}
+							break;
+						}
+					} else {
+						$newString .= $curWord;
+						$curWord = '';
+						$i = $preInputStartIndex - 1;
+						continue;
+					}
+				}
+				
+				$newString .= $curWord;
+				$curWord = '';
+			}
+			
+			if($i>=$num-1) {
+				$newString .= $curWord.$char;
+				break;
+			}
+			
+			if($searching && $this->isAlphaNumeric($char) && $i<$num-1) {
+				$curWord .= $char;
+			} else {
+				$newString .= $char;
+			}
+		}
+		
+		return $newString;
+	}
+	
 	/**
 	* Execute a query and return a multidimensional array containing all results.
 	* @param string $sql An SQL query to execute
@@ -175,6 +268,8 @@ class PDOAdapter extends EventEmitter {
 	* @return array An array of query results. The exact type of the array (associative, numeric, or both) depends on the $resultType parameter
 	*/
 	public function arrayQuery($sql, $resultType=null) {
+		$sql = $this->prepare($sql);
+		
 		if(!$resultType) {
 			$resultType = $this->defaultResultType;
 		}
@@ -201,6 +296,8 @@ class PDOAdapter extends EventEmitter {
 	* @return array An array containing the first column of each row returned by the query
 	*/
 	public function firstColumnArrayQuery($sql) {
+		$sql = $this->prepare($sql);
+		
 		$list = array();
 		$result = @$this->store->query($sql, PDO::FETCH_NUM);
 		if($result) {
@@ -222,6 +319,8 @@ class PDOAdapter extends EventEmitter {
 	* @return mixed The first row in the result set. The exact type of this object (associative, numeric, or both) depends on the $resultType parameter
 	*/
 	public function firstRowQuery($sql, $resultType=null) {
+		$sql = $this->prepare($sql);
+		
 		if(!$resultType) {
 			$resultType = $this->defaultResultType;
 		}
@@ -242,6 +341,8 @@ class PDOAdapter extends EventEmitter {
 	* @return boolean A boolean indicating whether or not the query was executed successfully
 	*/
 	public function exec($sql) {
+		$sql = $this->prepare($sql);
+		
 		$result = $this->store->exec($sql);
 		$this->triggerSQLEvent($sql);
 		return $result;
@@ -253,6 +354,8 @@ class PDOAdapter extends EventEmitter {
 	* @return mixed The result of executing the specified SQL statement
 	*/
 	public function singleQuery($sql) {
+		$sql = $this->prepare($sql);
+		
 		$result = @$this->store->query($sql);
 		if(!$result) {
 			return false;
@@ -293,6 +396,11 @@ class PDOAdapter extends EventEmitter {
 	*/
 	public function escape($string) {
 		return preg_replace('/(^[\'"]|[\'"]$)/', '', $this->store->quote($string));
+	}
+	
+	public function quoteOnce($string) {
+		$result = $this->store->quote($string);
+		return preg_replace('/\\\+/', '\\', preg_replace("/(^'\\\'|\\\''$)/", "'", $result));
 	}
 	
 	/**

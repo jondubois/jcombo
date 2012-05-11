@@ -369,7 +369,7 @@ var $j = {
 					var response = $j.grab._loadedTemplates[resourceName].response;
 					jRequest.success(response.data, response.textStatus, response.jqXHR);
 				}
-			} else {	
+			} else {
 				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "loading" ||
 						$j.grab._loadedTemplates[resourceName].status == "error") {
 							
