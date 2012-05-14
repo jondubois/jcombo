@@ -1,5 +1,6 @@
 <?php
 require_once(dirname(__FILE__).'/PDOAdapter.php');
+require_once(dirname(__FILE__).'/EventEmitter.php');
 
 /**
 * The purpose of the Router class is to define running conditions for the application and to control the routing of scripts.
@@ -14,9 +15,15 @@ class Router {
 	private static $error = false;
 	private static $headCode = '';
 	private static $bodyCode = '';
+	private static $eventEmitter = null;
 	const INCLUDE_FILE = 'include.conf';
+	const ERROR_EVENT = 'errorevent';
 	
 	private static $applicationDirPath;
+	
+	public static function prepare() {
+		self::$eventEmitter = new EventEmitter();
+	}
 	
 	/**
 	* Initialize the Router class to rout URLs to the specified application.
@@ -460,6 +467,21 @@ class Router {
 		return $errorType;
 	}
 	
+	public static function addErrorListener($callback) {
+		self::$eventEmitter->addEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	public static function removeErrorListener($callback) {
+		self::$eventEmitter->removeEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	private static function triggerErrorEvent($errorMessage) {
+		$callbacks = self::$eventEmitter->getEventListeners(self::ERROR_EVENT);
+		foreach($callbacks as $callback) {
+			call_user_func($callback, $errorMessage);
+		}
+	}
+	
 	/*
 	* Report an error to the router. If error logging is turned on, The router will append the error
 	* to the application's errors.txt file.
@@ -472,10 +494,13 @@ class Router {
 		$errorLine = $error['line'];
 		
 		$errorMessage = "[$errorType] $errorMessage in $errorFile on line $errorLine\r\n";
+		$longErrorMessage = '['.date("j F Y, g:i:sa").'] '.$errorMessage;
+		
 		self::$bodyCode .= $errorMessage;
 		if(self::$logErrors) {
-			file_put_contents(JC_APPDATA_DIR.'errors.txt', '['.date("j F Y, g:i:sa").'] '.$errorMessage, FILE_APPEND);
+			file_put_contents(JC_APPDATA_DIR.'errors.txt', $longErrorMessage, FILE_APPEND);
 		}
+		self::triggerErrorEvent($longErrorMessage);
 	}
 	
 	public static function handleException($e) {
@@ -553,4 +578,5 @@ class Router {
 	}
 }
 
+Router::prepare();
 ?>

@@ -13,6 +13,17 @@ class EventEmitter {
 		$this->listeners[$event][$callback] = true; 
 	}
 	
+	public function getEventListeners($event) {
+		$listeners = array();
+		if(isset($this->listeners[$event])) {
+			$listenerMap = $this->listeners[$event];
+			foreach($listenerMap as $key => $value) {
+				$listeners[] = $key;
+			}
+		}
+		return $listeners;
+	}
+	
 	public function removeEventListener($event, $callback) {
 		if(isset($this->listeners[$event])) {
 			unset($this->listeners[$event][$callback]);
