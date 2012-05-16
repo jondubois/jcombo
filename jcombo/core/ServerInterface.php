@@ -11,14 +11,14 @@ class ServerInterface {
 	}
 	
 	public static function classTrigger($className, $event) {
-		if(self::$eventLog == null) {
+		if(self::$eventLog === null) {
 			self::$eventLog = array();
 		}
 		self::$eventLog["$className.$event"] = true;
 	}
 	
 	public static function trigger($event) {
-		if(self::$eventLog == null) {
+		if(self::$eventLog === null) {
 			self::$eventLog = array();
 		}
 		self::$eventLog[$event] = true;
@@ -29,7 +29,7 @@ class ServerInterface {
 	}
 	public static function getTriggeredEvents() {
 		$set = array();
-		if(self::$eventLog == null) {
+		if(self::$eventLog === null) {
 			return $set;
 		}
 		
