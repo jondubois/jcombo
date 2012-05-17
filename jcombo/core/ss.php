@@ -5,7 +5,8 @@
 
 require_once(dirname(__FILE__).'/../config.php');
 
-$relDir = './';
+$relDir = dirname($_SERVER['SCRIPT_FILENAME']).'/';
+
 while(!file_exists($relDir.'config.php') || !file_exists($relDir.'prepare.php')) {
 	if(!file_exists($relDir)) {
 		throw new Exception("The server service can only be used within a valid application subdirectory");
