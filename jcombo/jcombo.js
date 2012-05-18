@@ -139,7 +139,7 @@ var $j = {
 		Each function handles a specific type of error and can accept any suitable number of parameters
 		in order to generate the appropriate error message.
 	*/
-	errors: {		
+	errors: {	
 		loadTemplateError: function(message) {
 			return "LoadTemplateError: Could not load one or more templates because of the following AJAX error: " + message;
 		},
@@ -781,6 +781,8 @@ var $j = {
 			for(i=0; i<len; i++) {
 				if(params[i] !== undefined) {
 					args.push(params[i]);
+				} else {
+					args.push(null);
 				}
 			}
 		}
@@ -821,6 +823,8 @@ var $j = {
 			for(i=0; i<len; i++) {
 				if(params[i] !== undefined) {
 					args.push(params[i]);
+				} else {
+					args.push(null);
 				}
 			}
 		}

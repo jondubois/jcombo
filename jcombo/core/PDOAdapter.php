@@ -11,6 +11,7 @@ class PDOAdapter extends EventEmitter {
 	const UPDATE_EVENT = 'update';
 	const DELETE_EVENT = 'delete';
 	const INSERT_EVENT = 'insert';
+	const MAX_INT_STR = '18446744073709551615';
 	
 	private $store;
 	private $defaultResultType;
@@ -67,7 +68,7 @@ class PDOAdapter extends EventEmitter {
 			}
 			$query .= " LIMIT ".intval($startIndex).",".intval($numElements);
 		} else {
-			$query .= " LIMIT ".intval($startIndex).",18446744073709551615";
+			$query .= " LIMIT ".intval($startIndex).",".self::MAX_INT_STR;
 		}
 		
 		$query .= ";";
