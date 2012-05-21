@@ -65,6 +65,10 @@ class Router {
 		self::includeDefaultPluginsJS();
 	}
 	
+	public static function isInReleaseMode() {
+		return !isset($_SESSION['jcDebugMode']) || !$_SESSION['jcDebugMode'];
+	}
+	
 	/**
 	* Output all necessary preparation and routing scripts for client-side execution.
 	*/
