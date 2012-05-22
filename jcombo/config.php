@@ -35,5 +35,4 @@ require_once(JC_FRAMEWORK_DIR.'core/Router.php');
 define('JC_FRAMEWORK_URL', PathManager::convertPathToURL(JC_FRAMEWORK_DIR));
 
 define('JC_SERVER_GATEWAY_URL', PathManager::convertPathToURL(JC_FRAMEWORK_DIR.'core/ws.php'));
-
 ?>

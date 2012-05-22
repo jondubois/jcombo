@@ -691,6 +691,21 @@ var $j = {
 		var className = callRequest.className;
 		var method = callRequest.method;
 		
+		var args = [];
+		var params = callRequest.params;
+		if(params) {
+			var len = params.length;
+			var i;
+			for(i=0; i<len; i++) {
+				if(params[i] !== undefined) {
+					args.push(params[i]);
+				} else {
+					args.push(null);
+				}
+			}
+		}
+		callRequest.params = args;
+		
 		jRequest.data = "appPath=" + encodeURIComponent(appPath) + "&request=" + JSON.stringify(callRequest);
 		jRequest.dataType = "json";
 		
@@ -774,23 +789,10 @@ var $j = {
 		
 		jRequest.cache = $j._cacheSeverCalls;
 		
-		var args = new Array();
-		if(params) {
-			var len = params.length;
-			var i;
-			for(i=0; i<len; i++) {
-				if(params[i] !== undefined) {
-					args.push(params[i]);
-				} else {
-					args.push(null);
-				}
-			}
-		}
-		
 		var request = {
 			className: className,
 			method: method,
-			params: args
+			params: params
 		};
 		
 		$j._sendCallRequest($j._appPath, jRequest, request);
@@ -816,23 +818,10 @@ var $j = {
 		jRequest.cache = $j._cacheSeverCalls;
 		jRequest.processData = true;
 		
-		var args = new Array();
-		if(params) {
-			var len = params.length;
-			var i;
-			for(i=0; i<len; i++) {
-				if(params[i] !== undefined) {
-					args.push(params[i]);
-				} else {
-					args.push(null);
-				}
-			}
-		}
-		
 		var request = {
 			className: className,
 			method: method,
-			params: args
+			params: params
 		};
 		
 		$j._sendCallRequest($j._appPath, jRequest, request);
