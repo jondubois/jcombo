@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 $fileName = $_GET['resource'];
 $filePath = dirname(__FILE__).'/../'.$fileName;
 
@@ -21,15 +19,11 @@ if(file_exists($filePath)) {
 			header('Content-Type: text/html');
 		}
 	}
-	if(isset($_SESSION['jcDebugMode']) && $_SESSION['jcDebugMode']) {
-		header('Cache-Control: no-cache');
-		header('Pragma: no-cache');
-	} else {
-		header('Cache-Control: public');
-		header('Pragma: public');
-		header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 2592000));
-		header('Last-Modified: '.gmdate('D, d M Y H:i:s \G\M\T', filemtime($filePath)));
-	}
+	header('Cache-Control: public');
+	header('Pragma: public');
+	header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 2592000));
+	header('Last-Modified: '.gmdate('D, d M Y H:i:s \G\M\T', filemtime($filePath)));
+	
 	echo file_get_contents($filePath);
 } else {
 	header('HTTP/1.0 404 Not Found');

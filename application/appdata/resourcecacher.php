@@ -1,9 +1,9 @@
 <?php
-session_start();
+require_once(dirname(__FILE__).'/../preparesession.php');
 
 $fileName = $_GET['resource'];
 $filePath = dirname(__FILE__).'/../'.$fileName;
-	
+
 if(file_exists($filePath)) {
 	if(preg_match('/(?<=[.])[^.]*$/', $fileName, $matches)) {
 		$fileType = $matches[0];

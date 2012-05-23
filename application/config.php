@@ -9,6 +9,8 @@ define('JC_APPLICATION_DIR', dirname(__FILE__).'/');
 // define the appdata directory
 define('JC_APPDATA_DIR', JC_APPLICATION_DIR.'appdata/');
 
+require_once(JC_APPLICATION_DIR.'preparesession.php');
+
 // define the sqlite database directory
 define('JC_DB_DIR', JC_APPLICATION_DIR.'databases/');
 
@@ -49,4 +51,5 @@ define('JC_ASSETS_URL', PathManager::convertPathToURL(JC_ASSETS_DIR));
 
 // define the files directory URL
 define('JC_FILES_URL', PathManager::convertPathToURL(JC_FILES_DIR));
+
 ?>

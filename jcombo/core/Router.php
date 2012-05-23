@@ -30,9 +30,7 @@ class Router {
 	* @param string $applicationDirPath An absolute or relative path to the application's root directory.
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
-	public static function init($applicationDirPath, $debugMode=true, $logErrors=true) {
-		$_SESSION['jcDebugMode'] = $debugMode;
-		
+	public static function init($applicationDirPath, $debugMode=true, $logErrors=true) {		
 		ob_start(array('Router', 'outputBuffer'));
 		
 		self::$error = false;
@@ -43,6 +41,7 @@ class Router {
 		self::$bodyCode = '';
 		
 		require_once(self::$applicationDirPath.'config.php');
+		$_SESSION['jcDebugMode'] = $debugMode;
 		
 		register_shutdown_function(array('Router', 'handleShutdown'));
 		set_error_handler(array('Router', 'handleError'));
