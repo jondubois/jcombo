@@ -98,14 +98,14 @@ $j.mvp = {
 		self.cover = function(view) {
 			self._template = view.getTemplate();
 			if(self.isInDOM()) {
-				self._update();
+				self.update();
 			}
 		}
 		
 		self.uncover = function() {
 			self._template = self._mainTemplate;
 			if(self.isInDOM()) {
-				self._update();
+				self.update();
 			}
 		}
 		
@@ -154,7 +154,9 @@ $j.mvp = {
 		}
 		
 		self.setData = function(data) {
-			self.triggerUnrender();
+			if(self.isInDOM()) {
+				self.triggerUnrender();
+			}
 			$.each(self._children, function(index, value) {
 				if(value.setParent && value.getID) {
 					value.setParent(null);
@@ -169,7 +171,7 @@ $j.mvp = {
 			self._adoptDescendantViewables(self._data);
 			
 			if(self.isInDOM()) {
-				self._update();
+				self.update();
 			}
 		}
 		
@@ -402,7 +404,7 @@ $j.mvp = {
 			return '<div class="jComboWrapper ' + self._id + self._classes + '">' + html + '</div>'
 		}
 		
-		self._update = function() {
+		self.update = function() {
 			var selfDiv = self.select();
 			selfDiv.html(self._getContent());
 			selfDiv.addClass(self._classes);
