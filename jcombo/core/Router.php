@@ -16,6 +16,7 @@ class Router {
 	private static $headCode = '';
 	private static $bodyCode = '';
 	private static $eventEmitter = null;
+	private static $tempMode = null;
 	const INCLUDE_FILE = 'include.conf';
 	const ERROR_EVENT = 'errorevent';
 	
@@ -30,10 +31,11 @@ class Router {
 	* @param string $applicationDirPath An absolute or relative path to the application's root directory.
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
-	public static function init($applicationDirPath, $debugMode=true, $logErrors=true) {		
+	public static function init($applicationDirPath, $releaseMode=false, $logErrors=true) {		
 		ob_start(array('Router', 'outputBuffer'));
 		
 		self::$error = false;
+		self::$tempMode = null;
 		self::$logErrors = $logErrors;
 		self::$applicationDirPath = self::cleanFormatDirPath(realpath($applicationDirPath));
 		
@@ -41,7 +43,7 @@ class Router {
 		self::$bodyCode = '';
 		
 		require_once(self::$applicationDirPath.'config.php');
-		$_SESSION['jcDebugMode'] = $debugMode;
+		$_SESSION['jcReleaseMode'] = $releaseMode;
 		
 		register_shutdown_function(array('Router', 'handleShutdown'));
 		set_error_handler(array('Router', 'handleError'));
@@ -64,8 +66,20 @@ class Router {
 		self::includeDefaultPluginsJS();
 	}
 	
+	public static function setReleaseMode($boolean) {
+		if($boolean) {
+			self::$tempMode = 'release';
+		} else {
+			self::$tempMode = 'debug';
+		}
+	}
+	
+	public static function isDefaultModeSet() {
+		return isset($_SESSION['jcReleaseMode']);
+	}
+	
 	public static function isInReleaseMode() {
-		return !isset($_SESSION['jcDebugMode']) || !$_SESSION['jcDebugMode'];
+		return self::$tempMode == 'release' || (isset($_SESSION['jcReleaseMode']) && $_SESSION['jcReleaseMode']);
 	}
 	
 	/**
@@ -433,7 +447,7 @@ class Router {
 	}
 	
 	public static function compileExceptionMessage($exception) {
-		if(isset($_SESSION['jcDebugMode']) && $_SESSION['jcDebugMode']) {
+		if(!self::isInReleaseMode()) {
 			$backtrace = $exception->getTraceAsString();
 			return 'ServerGatewayError: ['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
 		} else {

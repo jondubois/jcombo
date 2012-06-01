@@ -27,6 +27,24 @@ set_exception_handler(array('ServerGateway', 'handleException'));
 
 Phase::setPhase(Phase::WEB_SERVICE);
 
+if(isset($_POST['debug'])) {
+	if($_POST['debug'] == 'true' || $_POST['debug'] == 1) {
+		Router::setReleaseMode(false);
+	} else {
+		Router::setReleaseMode(true);
+	}
+} else if(isset($_GET['debug'])) {
+	if($_GET['debug'] == 'true' || $_GET['debug'] == 1) {
+		Router::setReleaseMode(false);
+	} else {
+		Router::setReleaseMode(true);
+	}
+} else {
+	if(!Router::isDefaultModeSet()) {
+		Router::setReleaseMode(true);
+	}
+}
+
 require_once(JC_APP_DIR.'prepare.php');
 
 if(isset($_POST['request'])) {

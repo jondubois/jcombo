@@ -3,8 +3,6 @@
 * Main configuration file for jCombo.
 */
 
-//session_start();
-
 // define the jCombo framework's root directory
 define('JC_FRAMEWORK_DIR', dirname(__FILE__).'/');
 
