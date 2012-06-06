@@ -112,18 +112,20 @@ var $j = {
 	},
 	
 	_triggerReady: function() {
-		if($j._callbacks['ready'].length > 0) {
-			$j._execReadyCallbacks();
+		var callbacks = $j._callbacks['ready'];
+		$j._callbacks['ready'] = [];
+		if(callbacks.length > 0) {
+			$j._execReadyCallbacks(callbacks);
 		}
 	},
 	
-	_execReadyCallbacks: function() {
-		var len = $j._callbacks['ready'].length;
+	_execReadyCallbacks: function(callbacks) {
+		var len = callbacks.length;
 		var i;
+		
 		for(i=len-1; i>=0; i--) {
-			$j._callbacks['ready'][i]();
+			callbacks[i]();
 		}
-		$j._callbacks['ready'] = [];
 	},
 	
 	_triggerFail: function(url) {
@@ -436,6 +438,7 @@ var $j = {
 		
 		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
 			$j.grab._loadDeepResourceToCache(url, function() {
+				
 				$j.grab._resourcesGrabbed.push(url);
 				$j.grab.linkTag(url, 'text/css', 'stylesheet');
 				if(successCallback) {
@@ -578,17 +581,24 @@ var $j = {
 						success: function(data) {
 							$j.grab._resourcesLoadedMap[url] = true;
 							$j.grab._deepResourcesLoaded[rootURL].push(url);
-							var urls;
+							var urls, nonLoadedURLs;
 							if(/[.]css$/.test(url)) {
+								nonLoadedURLs = [];
 								urls = $j.grab._parseDeepCSSURLs(data, url);
 								
 								var i;
 								var len = urls.length;
 								for(i=0; i<len; i++) {
-									$j.grab._deepResources[rootURL].push(urls[i]);
+									if(!$j.grab._resourcesLoadedMap[urls[i]]) {
+										$j.grab._deepResources[rootURL].push(urls[i]);
+										nonLoadedURLs.push(urls[i]);
+									}
 								}
+								
+								len = nonLoadedURLs.length;
+								
 								for(i=0; i<len; i++) {
-									$j.grab._loadDeepResourceToCache(urls[i], successCallback, errorCallback, rootURL);
+									$j.grab._loadDeepResourceToCache(nonLoadedURLs[i], successCallback, errorCallback, rootURL);
 								}
 							}
 							
