@@ -2,6 +2,7 @@
 	This script provides the core javascript functionality of jCombo.
 */
 var $j = {
+	MAX_ID: Math.pow(2, 53) - 2,
 	_appPath: null,
 	_frameworkURL: null,
 	_jsLibsURL: null,
@@ -17,6 +18,7 @@ var $j = {
 	_cacheTemplates: true,
 	_callbacks: {},
 	_serverWatchers: {},
+	_callCount: 0,
     
 	init: function(appDefinition) {
 		$j._appPath = appDefinition.appPath;
@@ -32,6 +34,12 @@ var $j = {
 		$j._appFilesURL = appDefinition.appFilesURL;
 		$j._callbacks['ready'] = [];
 		$j._callbacks['fail'] = [];
+	},
+	
+	_genID: function() {
+		$j._callCount++;
+		$j._callCount = $j._callCount % $j.MAX_ID;
+		return $j._callCount;
 	},
 	
 	/**
@@ -201,12 +209,11 @@ var $j = {
 		_deepResources: [],
 		_deepResourcesLoaded: [],
 		_resourcesLoadedMap: {},
-		
 		_deepResources: {},
 		_deepResourcesLoaded: {},
-		_cssImportRegex: /@import +(url([(] *| +))?"[^"]*"/g,
-		_quoteRegex: /"([^"]*)"/,
-		_curFileDir: /^(.*)\//,
+		_scriptTagPendingQueue: [],
+		_linkTagPendingQueue: [],
+		
 		
 		/**
 			Include a script from the application's script directory into the current script.
@@ -422,31 +429,62 @@ var $j = {
 			}
 		},
 		
-		loadAndEmbedScript: function(url, successCallback, errorCallback) {
-			$j.grab._loadDeepResourceToCache(url, function() {
-				$j.grab.scriptTag(url, 'text/javascript', null, function() {
-					$j.grab._resourcesGrabbed.push(url);
-					if(successCallback) {
-						successCallback(url);
+		_processScriptEmbedQueue: function() {
+			var curTag;
+			while($j.grab._scriptTagPendingQueue.length > 0) {
+				curTag = $j.grab._scriptTagPendingQueue[0];
+				if(curTag.ready) {
+					$j.grab.scriptTag(curTag.url, 'text/javascript', null, function() {
+						$j.grab._resourcesGrabbed.push(curTag.url);
+						if(curTag.successCallback) {
+							curTag.successCallback(url);
+						}
+						if(!$j.grab.isGrabbing()) {
+							$j._triggerReady();
+						}
+					});
+					$j.grab._scriptTagPendingQueue.shift();
+				} else {
+					break;
+				}
+			}
+		},
+		
+		_processLinkEmbedQueue: function() {
+			var curTag;
+			while($j.grab._linkTagPendingQueue.length > 0) {
+				curTag = $j.grab._linkTagPendingQueue[0];
+				if(curTag.ready) {
+					$j.grab.linkTag(curTag.url, 'text/css', 'stylesheet');
+					$j.grab._resourcesGrabbed.push(curTag.url);
+					if(curTag.successCallback) {
+						curTag.successCallback(curTag.url);
 					}
 					if(!$j.grab.isGrabbing()) {
 						$j._triggerReady();
 					}
-				});
+					$j.grab._linkTagPendingQueue.shift();
+				} else {
+					break;
+				}
+			}
+		},
+		
+		loadAndEmbedScript: function(url, successCallback, errorCallback) {
+			var tagData = {url: url, successCallback: successCallback, ready: false};
+			$j.grab._scriptTagPendingQueue.push(tagData);
+			$j.grab._loadDeepResourceToCache(url, function() {
+				tagData.ready = true;
+				$j.grab._processScriptEmbedQueue();
 			}, errorCallback);
 		},
 		
 		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
+			var tagData = {url: url, successCallback: successCallback, ready: false}
+			$j.grab._linkTagPendingQueue.push(tagData);
 			$j.grab._loadDeepResourceToCache(url, function() {
-				
-				$j.grab._resourcesGrabbed.push(url);
-				$j.grab.linkTag(url, 'text/css', 'stylesheet');
-				if(successCallback) {
-					successCallback(url);
-				}
-				if(!$j.grab.isGrabbing()) {
-					$j._triggerReady();
-				}
+				tagData.ready = true;
+				$j.grab._processLinkEmbedQueue();
 			}, errorCallback);
 		},
 		
