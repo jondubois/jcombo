@@ -21,7 +21,7 @@ if(file_exists($filePath)) {
 			header('Content-Type: text/html');
 		}
 	}
-	if(isset($_SESSION['jcDebugMode']) && $_SESSION['jcDebugMode']) {
+	if(!isset($_SESSION['jcReleaseMode']) || !$_SESSION['jcReleaseMode']) {
 		header('Cache-Control: no-cache');
 		header('Pragma: no-cache');
 	} else {

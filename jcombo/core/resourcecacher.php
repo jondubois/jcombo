@@ -1,6 +1,9 @@
 <?php
+$dirname = dirname(__FILE__);
+require_once($dirname.'/../debug.php');
+
 $fileName = $_GET['resource'];
-$filePath = dirname(__FILE__).'/../'.$fileName;
+$filePath = $dirname.'/../'.$fileName;
 
 if(file_exists($filePath)) {
 	if(preg_match('/(?<=[.])[^.]*$/', $fileName, $matches)) {
@@ -19,10 +22,16 @@ if(file_exists($filePath)) {
 			header('Content-Type: text/html');
 		}
 	}
-	header('Cache-Control: public');
-	header('Pragma: public');
-	header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 2592000));
-	header('Last-Modified: '.gmdate('D, d M Y H:i:s \G\M\T', filemtime($filePath)));
+	
+	if(JC_DEBUG_CORE) {
+		header('Cache-Control: no-cache');
+		header('Pragma: no-cache');
+	} else {
+		header('Cache-Control: public');
+		header('Pragma: public');
+		header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 2592000));
+		header('Last-Modified: '.gmdate('D, d M Y H:i:s \G\M\T', filemtime($filePath)));
+	}
 	
 	echo file_get_contents($filePath);
 } else {

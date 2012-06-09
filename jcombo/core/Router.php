@@ -31,7 +31,7 @@ class Router {
 	* @param string $applicationDirPath An absolute or relative path to the application's root directory.
 	* @param boolean $logErrors A boolean value that indicates whether or not this application should log all errors into the system log file.
 	*/
-	public static function init($applicationDirPath, $releaseMode=false, $logErrors=true) {		
+	public static function init($applicationDirPath, $releaseMode=false, $logErrors=true) {
 		ob_start(array('Router', 'outputBuffer'));
 		
 		self::$error = false;
