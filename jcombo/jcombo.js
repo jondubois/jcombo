@@ -119,6 +119,50 @@ var $j = {
 		$j._callbacks['fail'].push(callback);
 	},
 	
+	EventDispatcher: function() {
+		var self = this;
+		self._listeners = {};
+		
+		self.on = function(event, listener) {
+			if(!self._listeners.hasOwnProperty(event)) {
+				self._listeners[event] = {};
+			}
+			self._listeners[event][listener] = listener;
+		}
+		
+		self.off = function(event, listener) {
+			return self._listeners.hasOwnProperty(event) && self._listeners[event].hasOwnProperty(listener);
+		}
+		
+		self.removeEventListener = function(event, listener) {
+			if(self.willTrigger(event, listener)) {
+				delete self._listeners[event][listener];
+			}
+		}
+		
+		self.dispatchEvent = function(event, eventData) {
+			if(self._listeners.hasOwnProperty(event)) {
+				var eventListeners = self._listeners[event];
+				var i;
+				for(i in eventListeners) {
+					eventListeners[i](eventData);
+				}
+			}
+		}
+		
+		self.numListeners = function(event) {
+			if(self._listeners[event]) {
+				var count = 0;
+				var i;
+				for(i in self._listeners[event]) {
+					count++;
+				}
+				return count;
+			}
+			return 0;
+		}
+	},
+	
 	_triggerReady: function() {
 		var callbacks = $j._callbacks['ready'];
 		$j._callbacks['ready'] = [];
@@ -195,6 +239,31 @@ var $j = {
 		}
 	},
 	
+	res: {
+		_templates: {},
+		
+		template: function(name) {
+			if(!$j.res.hasTemplate(name)) {
+				throw 'Exception: The ' + name + ' template is not available';
+			}
+			return $j.res._templates[name].clone();
+		},
+		
+		hasTemplate: function(name) {
+			return $j.res._templates.hasOwnProperty(name);
+		},
+		
+		addTemplate: function(name, template) {
+			$j.res._templates[name] = template;
+		},
+		
+		removeTemplate: function() {
+			if($j.res._templates.hasOwnProperty(name)) {
+				delete $j.res._templates[name];
+			}
+		}
+	},
+	
 	/**
 		Grab allows you to include external scripts, CSS stylesheets and templates into your JavaScript.
 		Some grab methods allow you to load resources either synchronously or asynchronously.
@@ -213,7 +282,6 @@ var $j = {
 		_deepResourcesLoaded: {},
 		_scriptTagPendingQueue: [],
 		_linkTagPendingQueue: [],
-		
 		
 		/**
 			Include a script from the application's script directory into the current script.
@@ -299,134 +367,15 @@ var $j = {
 			return $j._appFilesURL + nameWithExtension;
 		},
 		
-		/**
-			Load a handlebars template for use within the current script.
-			The jRequest parameter is optional and should be set when you want to load a template 
-			dynamically at runtime.
-			If the jRequest parameter is omitted, this function will return the compiled handlebars 
-			template - Otherwise it will return nothing; the compiled template will need to be accessed through jRequest's 
-			success handler.
-		*/
-		handlebars: function(name, jRequest, raw) {
-			var resourceName = $j._appTemplatesURL + name + '.handlebars';
-			
-			if(jRequest) {		
-				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "error") {
-					
-					$j.grab._loadedTemplates[resourceName] = {status: "loading", response: null, callbacks: new Array(jRequest)};
-					
-					var cacheTemplate;
-					if(jRequest.cache) {
-						cacheTemplate = jRequest.cache;
-					} else {
-						cacheTemplate = $j._cacheTemplates;	
-					}
-					
-					var settings = {
-						url: resourceName,
-						cache: cacheTemplate,
-						dataType: "html",
-						async: true,
-						
-						success: function(data, textStatus, jqXHR) {
-							if($j.grab._loadedTemplates[resourceName] && $j.grab._loadedTemplates[resourceName].status != "done") {
-								if(!raw) {
-									data = Handlebars.compile(data);
-								}
-								$j.grab._loadedTemplates[resourceName].status = "done";
-								$j.grab._loadedTemplates[resourceName].response = {data: data, textStatus: textStatus, jqXHR: jqXHR};
-								$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-									if(jReq.success) {
-										jReq.success(data, textStatus, jqXHR);	
-									}
-								});
-								$j.grab._loadedTemplates[resourceName].callbacks = new Array();
-							}
-						},
-						
-						error: function(jqXHR, textStatus, errorThrown) {
-							$j._triggerFail(resourceName);
-							if($j.grab._loadedTemplates[resourceName]) {
-								$j.grab._loadedTemplates[resourceName].status = "error";
-								$j.grab._loadedTemplates[resourceName].response = null;
-								$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-									if(jReq.error) {
-										jReq.error($j.errors.loadTemplateError(errorThrown), textStatus, jqXHR);
-									}
-								});
-							}
-						},
-						
-						complete: function(jqXHR, textStatus) {
-							if($j.grab._loadedTemplates[resourceName]) {
-								$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-									if(jReq.complete) {
-										jReq.complete(textStatus, jqXHR);
-									}	
-								});
-								if($j.grab._loadedTemplates[resourceName].status == "error") {
-									$j.grab._loadedTemplates[resourceName] = null;
-								}
-							}
-						}
-					};
-					$.ajax(settings);
-					
-				} else if($j.grab._loadedTemplates[resourceName].status == "loading") {
-					$j.grab._loadedTemplates[resourceName].callbacks.push(jRequest);
-				} else if($j.grab._loadedTemplates[resourceName].status == "done") {
-					var response = $j.grab._loadedTemplates[resourceName].response;
-					jRequest.success(response.data, response.textStatus, response.jqXHR);
-				}
-			} else {
-				if(!$j.grab._loadedTemplates[resourceName] || $j.grab._loadedTemplates[resourceName].status == "loading" ||
-						$j.grab._loadedTemplates[resourceName].status == "error") {
-							
-					if(!$j.grab._loadedTemplates[resourceName]) {
-						$j.grab._loadedTemplates[resourceName] = {status: "loading", response: null, callbacks: new Array()};
-					}
-					
-					var settings = {
-						url: resourceName,
-						cache: $j._cacheTemplates,
-						dataType: "html",
-						async: false,
-						
-						success: function(data, textStatus, jqXHR) {
-							if(!raw) {
-								data = Handlebars.compile(data);
-							}
-							$j.grab._loadedTemplates[resourceName].status = "done";
-							$j.grab._loadedTemplates[resourceName].response = {data: data, textStatus: textStatus, jqXHR: jqXHR};
-							$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-								if(jReq.success) {
-									jReq.success(data, textStatus, jqXHR);
-								}	
-							});
-						},
-						
-						error: function(jqXHR, textStatus, errorThrown) {
-							$j._triggerFail(resourceName);
-							$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-								if(jReq.error) {
-									jReq.error($j.errors.loadTemplateError(errorThrown), textStatus, jqXHR);
-								}	
-							});
-							
-							$.each($j.grab._loadedTemplates[resourceName].callbacks, function(index, jReq) {
-								if(jReq.complete) {
-									jReq.complete(textStatus, jqXHR);
-								}	
-							});
-							$j.grab._loadedTemplates[resourceName] = null;
-							throw $j.errors.loadTemplateError(errorThrown);
-						}
-					};
-					$.ajax(settings);
-				}
-				
-				return $j.grab._loadedTemplates[resourceName].response.data;	
+		template: function(name) {
+			if($j.res.hasTemplate(name)) {
+				return $j.res.template(name);
 			}
+			
+			var templ = new $j.Template();
+			templ.grab(name);
+			
+			return templ;
 		},
 		
 		_processScriptEmbedQueue: function() {
@@ -576,6 +525,8 @@ var $j = {
 		
 		_loadDeepResourceToCache: function(url, successCallback, errorCallback, rootURL) {
 			if(!$j.grab._resourcesLoadedMap[url]) {
+				var resourceData = null;
+				
 				if(!rootURL || url == rootURL) {
 					rootURL = url;
 					$j.grab._resources.push(url);
@@ -589,13 +540,16 @@ var $j = {
 					// images
 					var img = new Image();
 					img.onload = function() {
+						if(url == rootURL) {
+							resourceData = img;
+						}	
 						$j.grab._resourcesLoadedMap[url] = true;
 						$j.grab._deepResourcesLoaded[rootURL].push(url);
 						
 						if($j.grab._deepResourcesLoaded[rootURL].length >= $j.grab._deepResources[rootURL].length) {
 							$j.grab._resourcesLoaded.push(rootURL);
 							if(successCallback) {
-								successCallback(rootURL);
+								successCallback(rootURL, resourceData);
 							}
 						}
 					};
@@ -617,6 +571,10 @@ var $j = {
 						cache: true,
 						async: true,
 						success: function(data) {
+							if(url == rootURL) {
+								resourceData = data;
+							}
+							
 							$j.grab._resourcesLoadedMap[url] = true;
 							$j.grab._deepResourcesLoaded[rootURL].push(url);
 							var urls, nonLoadedURLs;
@@ -643,7 +601,7 @@ var $j = {
 							if($j.grab._deepResourcesLoaded[rootURL].length >= $j.grab._deepResources[rootURL].length) {
 								$j.grab._resourcesLoaded.push(rootURL);
 								if(successCallback) {
-									successCallback(rootURL);
+									successCallback(rootURL, resourceData);
 								}
 							}
 						},
@@ -1031,6 +989,88 @@ var $j = {
 		}
 	}
 };
+
+$j.Template = $j.mixin(function() {
+	var self = this;
+	self.initMixin($j.EventDispatcher);
+	self._renderer = null;
+	self._text = null;
+	self._loaded = false;
+	self._name = null;
+	
+	self.getName = function() {
+		return self._name;
+	}
+	
+	self.grab = function(name) {
+		self._name = name;
+		var url = $j._appTemplatesURL + name + '.handlebars';
+		
+		$j.grab._loadDeepResourceToCache(url, function(url, data) {
+			$j.grab._resourcesGrabbed.push(url);
+			self._loaded = true;
+			self._text = data;
+			self._renderer = Handlebars.compile(self._text);
+			
+			$j.res.addTemplate(name, self);
+			self.dispatchEvent('load', self);
+			
+			if(!$j.grab.isGrabbing()) {
+				$j._triggerReady();
+			}
+		}, function() {
+			self.dispatchEvent('error', self);
+		});
+	}
+	
+	self.make = function(name, content) {
+		self._name = name;
+		self._text = content;
+		self._renderer = Handlebars.compile(self._text);
+		self._loaded = true;
+	}
+	
+	self.clone = function() {
+		var templ = new $j.Template();
+		templ.make(self._name, self._text);
+		return templ;
+	}
+	
+	self.on = function(event, listener) {
+		if((event == 'load' || event == 'error') && self._loaded) {
+			listener(self);
+		} else {
+			self.callMixinMethod($j.EventDispatcher, 'on', [event, listener]);
+		}
+	}
+	
+	self.load = function(listener)	{
+		self.on('load', listener);
+	}
+	
+	self.error = function(listener)	{
+		self.on('error', listener);
+	}
+	
+	self.render = function(data) {
+		if(!self._loaded) {
+			throw 'The template has not been loaded';
+		}
+		return self._renderer(data);
+	}
+	
+	self.getText = function() {
+		return self._text;
+	}
+	
+	self.getRenderer = function() {
+		return self._renderer;
+	}
+	
+	self.isLoaded = function() {
+		return self._loaded;
+	}
+})
 
 if(!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function(item, start) {

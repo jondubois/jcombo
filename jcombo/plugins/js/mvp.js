@@ -71,28 +71,139 @@ $j.mvp = {
 		self._rebindEvents = [];
 		self._callbacks['render'] = [];
 		self._callbacks['unrender'] = [];
+		self._callbacks['load'] = [];
+		self._callbacks['error'] = [];
 		self._children = {};
 		self._classes = '';
+		self._loaded = false;
+		self._defaultTemplate = template;
+		self._templateString = null;
+		self._mainTemplate = null;
+		self._template = null;
 		
 		self.errors = {
-			invalidTemplateError: function(areaName) {
-				return 'Exception: The specified template must be of type String';
-			},
-			
 			areaDoesNotExistError: function(areaName) {
 				return 'Exception: View does not have an area with the areaName "' + areaName + '"';
+			},
+			templateNotSpecified: function() {
+				return 'Exception: No template was specified for this view';
 			}
 		};
 		
-		self._id = 'jComboView' + $j.mvp.generateID();
-		
-		if(typeof template != 'string') {
-			throw self.errors.invalidTemplateError();
+		if(!template) {
+			throw self.errors.templateNotSpecified();
 		}
 		
-		self._templateString = template;
-		self._mainTemplate = Handlebars.compile(template);
-		self._template = self._mainTemplate;
+		self._id = 'jComboView' + $j.mvp.generateID();
+		
+		self.on = function() {
+			var args = arguments;
+			var selfSelector = '.' + self._id;
+			var jObject = $(selfSelector);
+			if(args.length < 1) {
+				throw $j.mvp.errors.noParamsSpecified();
+			}
+			
+			if(args[0] == 'render' || args[0] == 'unrender' || args[0] == 'load' ||  args[0] == 'error') {
+				var lastArg = args[args.length-1];
+				
+				if(args.length < 2 || !lastArg instanceof Function) {
+					throw 'Exception: Handler not specified for the ' + args[0] + ' event';
+				}
+				
+				if((args[0] == 'load' || args[0] == 'error') && self._loaded) {
+					lastArg(self);
+				} else {
+					self._callbacks[args[0]].push(lastArg);
+				}
+			} else {
+				self._rebindEvents.push(args);
+				if(self.isInDOM()) {
+					jObject.on.apply(jObject, args);
+				}
+			}
+		}
+		
+		self.off = function() {
+			var args = arguments;
+			if(args.length > 0 && (args[0] == 'render' || args[0] == 'unrender' || args[0] == 'load' ||  args[0] == 'error')) {
+				var firstArg = args[0];
+				var lastArg = args[args.length-1];
+				
+				if(args.length > 1) {
+					self._callbacks[firstArg] = $.grep(self._callbacks[firstArg], function(value) {
+						return value != lastArg;
+					});
+				} else {
+					self._callbacks[firstArg] = [];
+				}
+			} else {
+				var selfSelector = '.' + self._id;
+				var jObject = $(selfSelector);
+				
+				jObject.off.apply(jObject, args);
+				
+				if(self._rebindEvents.length > 0) {
+					self._rebindEvents = $.grep(self._rebindEvents, function(value) {
+						return !self._handlerTriggeredBy(value, args);
+					});
+				}
+			}
+		}
+		
+		self.load = function(listener) {
+			self.on('load', listener);
+		}
+		
+		self.error = function(listener)	{
+			self.on('error', listener);
+		}
+		
+		self._triggerLoad = function() {
+			var templateName = self._defaultTemplate.getName();
+			$.each(self._callbacks['load'], function(index, value) {
+				value(self);
+			});
+		}
+		
+		self._triggerError = function() {
+			$.each(self._callbacks['error'], function(index, value) {
+				value(self);
+			});
+		}
+		
+		if(typeof self._defaultTemplate == 'string') {
+			self._loaded = true;
+			self._templateString = self._defaultTemplate;
+			self._mainTemplate = Handlebars.compile(self._defaultTemplate);
+			self._template = self._mainTemplate;
+		} else {
+			self.load(function() {
+				self._loaded = true;
+				self._templateString = self._defaultTemplate.getText();
+				self._mainTemplate = self._defaultTemplate.getRenderer();
+				self._template = self._mainTemplate;
+			});
+			
+			self.error(function() {
+				if(self._callbacks['error'].length < 1) {
+					throw 'Failed to load template';
+				}
+			});
+			
+			self._defaultTemplate.load(function() {
+				self._triggerLoad();
+			});
+			
+			self._defaultTemplate.error(function() {
+				self._triggerError();
+			});
+		}
+		
+		self.isLoaded = function() {
+			return self._loaded;
+		}
+		
 		self._data = {};
 		
 		self.cover = function(view) {
@@ -118,6 +229,7 @@ $j.mvp = {
 		}
 		
 		self.clone = function() {
+			self._validateLoaded();
 			return new $j.mvp.View(template);
 		}
 		
@@ -259,56 +371,6 @@ $j.mvp = {
 			return triggers;
 		}
 		
-		self.on = function() {
-			var args = arguments;
-			var selfSelector = '.' + self._id;
-			var jObject = $(selfSelector);
-			if(args.length < 1) {
-				throw $j.mvp.errors.noParamsSpecified();
-			}
-			
-			if(args[0] == 'render' || args[0] == 'unrender') {
-				var lastArg = args[args.length-1];
-				if(args.length < 2 || !lastArg instanceof Function) {
-					throw 'Exception: Handler not specified for the ' + args[0] + ' event';
-				}
-			
-				self._callbacks[args[0]].push(lastArg);
-			} else {
-				self._rebindEvents.push(args);
-				if(self.isInDOM()) {
-					jObject.on.apply(jObject, args);
-				}
-			}
-		}
-		
-		self.off = function() {
-			var args = arguments;
-			if(args.length > 0 && (args[0] == 'render' || args[0] == 'unrender')) {
-				var firstArg = args[0];
-				var lastArg = args[args.length-1];
-				
-				if(args.length > 1) {
-					self._callbacks[firstArg] = $.grep(self._callbacks[firstArg], function(value) {
-						return value != lastArg;
-					});
-				} else {
-					self._callbacks[firstArg] = [];
-				}
-			} else {
-				var selfSelector = '.' + self._id;
-				var jObject = $(selfSelector);
-				
-				jObject.off.apply(jObject, args);
-				
-				if(self._rebindEvents.length > 0) {
-					self._rebindEvents = $.grep(self._rebindEvents, function(value) {
-						return !self._handlerTriggeredBy(value, args);
-					});
-				}
-			}
-		}
-		
 		self.render = function(handler) {
 			self.on('render', handler);
 		}
@@ -396,8 +458,15 @@ $j.mvp = {
 		}
 		
 		self._getContent = function() {
+			self._validateLoaded();
 			var compiledData = self._safeFormat(self._data);
 			return self._template(compiledData);
+		}
+		
+		self._validateLoaded = function() {
+			if(!self._loaded) {
+				throw 'Exception: Method cannot be called before the view has been fully loaded';
+			}
 		}
 		
 		self._wrapID = function(html) {
@@ -416,7 +485,6 @@ $j.mvp = {
 		Mixin class to be mixed into all component classes which must implement the getComponentName() methods.
 		See $j.mixin() function.
 	*/
-	
 	Component: $j.mixin(function(template) {
 		var self = this;
 		self.initMixin($j.mvp.View, [template]);
@@ -428,21 +496,19 @@ $j.mvp = {
 	})
 };
 
-
 $j.mvp.init();
 
-$j.grab.view = function(templateName, jRequest) {
-	if(jRequest) {
-		$j.grab.handlebars(templateName, {
-			success: function(template, textStatus, jqXHR) {
-				var view = new $j.mvp.View(template);
-				jRequest.success(view, textStatus, jqXHR);
-			},
-			
-			error: jRequest.error,
-			complete: jRequest.complete
-		}, true);
-	} else {
-		return new $j.mvp.View($j.grab.handlebars(templateName, null, true));
+$j.res.hasView = function(name) {
+	return $j.res.hasTemplate(name);
+},
+
+$j.res.view = function(name) {
+	if(!$j.res.hasView(name)) {
+		throw 'Exception: The ' + name + ' view is not available';
 	}
+	return new $j.mvp.View($j.res.template(name));
+}
+
+$j.grab.view = function(templateName) {
+	return new $j.mvp.View($j.grab.template(templateName));
 }
