@@ -450,7 +450,11 @@ var $j = {
 			if(!$.browser.msie || parseInt($.browser.version) > 8) {
 				script.onload = function() {callback(url);};
 			} else {
-				script.onreadystatechange = function() {callback(url);};
+				script.onreadystatechange = function() {
+					if(this.readyState == 'loaded') {
+						callback(url);
+					}
+				};
 			}
 			
 			if(id) {
@@ -582,12 +586,14 @@ var $j = {
 								nonLoadedURLs = [];
 								urls = $j.grab._parseDeepCSSURLs(data, url);
 								
-								var i;
+								var i, curURL;
 								var len = urls.length;
 								for(i=0; i<len; i++) {
-									if(!$j.grab._resourcesLoadedMap[urls[i]]) {
-										$j.grab._deepResources[rootURL].push(urls[i]);
-										nonLoadedURLs.push(urls[i]);
+									curURL = urls[i];
+									
+									if(!$j.grab._resourcesLoadedMap[curURL]) {
+										$j.grab._deepResources[rootURL].push(curURL);
+										nonLoadedURLs.push(curURL);
 									}
 								}
 								

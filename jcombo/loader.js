@@ -1,7 +1,6 @@
 var $loader = {
 	_ie: false,
 	_ieVersion: null,
-	MAX_ATTEMPTS: 3,
 	_embedCounter: null,
 	
 	_loader: null,
@@ -94,7 +93,7 @@ var $loader = {
 		$loader._loader.start($loader._frameworkURL, $loader._resources);
 	},
 	
-	_embedAllResources: function() {
+	_embedAllResources: function() {	
 		if($loader._embedCounter < $loader._resources.length) {
 			var url = $loader._resources[$loader._embedCounter];
 			var id = $loader._resourceIDs[url];
@@ -190,7 +189,11 @@ var $loader = {
 			if(!$loader._ie || $loader._ieVersion > 8) {
 				script.onload = function() {callback(url);};
 			} else {
-				script.onreadystatechange = function() {callback(url);};
+				script.onreadystatechange = function() {
+					if(this.readyState == 'loaded') {
+						callback(url);
+					}
+				};
 			}
 		}
 		
@@ -302,8 +305,9 @@ var $loader = {
 					success: function(data) {
 						$loader._resourcesLoadedMap[url] = true;
 						$loader._deepResourcesLoaded[rootURL].push(url);
-						var urls;
+						var urls, nonLoadedURLs;
 						if(/[.]css$/.test(url)) {
+							nonLoadedURLs = [];
 							urls = $loader._parseDeepCSSURLs(data, url);
 							
 							var i, curURL;
@@ -312,8 +316,15 @@ var $loader = {
 								curURL = urls[i];
 								
 								if(!$loader._resourcesLoadedMap[curURL]) {
-									$loader._loadDeepResourceToCache(curURL, successCallback, errorCallback, rootURL);
+									$loader._deepResources[rootURL].push(curURL);
+									nonLoadedURLs.push(curURL);
 								}
+							}
+							
+							len = nonLoadedURLs.length;
+							
+							for(i=0; i<len; i++) {
+								$loader._loadDeepResourceToCache(nonLoadedURLs[i], successCallback, errorCallback, rootURL);
 							}
 						}
 						
