@@ -30,7 +30,6 @@ if(file_exists($filePath)) {
 		header('Cache-Control: public');
 		header('Pragma: public');
 		header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 2592000));
-		header('Last-Modified: '.gmdate('D, d M Y H:i:s \G\M\T', filemtime($filePath)));
 	}
 	
 	echo file_get_contents($filePath);
