@@ -15,7 +15,6 @@ var $j = {
 	_appFilesURL: null,
 	_appTemplatesURL: null,
 	_cacheSeverCalls: false,
-	_cacheTemplates: true,
 	_callbacks: {},
 	_serverWatchers: {},
 	_callCount: 0,
@@ -228,14 +227,6 @@ var $j = {
 		*/
 		cacheServerCalls: function(bool) {
 			$j._cacheSeverCalls = bool;
-		},
-		
-		/**
-			Enable/disable default caching for loading templates.
-			Template caching is enabled by default.
-		*/
-		cacheTemplates: function(bool) {
-			$j._cacheTemplates = bool;
 		}
 	},
 	
@@ -1076,7 +1067,7 @@ $j.Template = $j.mixin(function() {
 	self.isLoaded = function() {
 		return self._loaded;
 	}
-})
+});
 
 if(!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function(item, start) {
