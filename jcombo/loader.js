@@ -61,11 +61,11 @@ var $loader = {
 			$loader._ieVersion = new Number(RegExp.$1)
 		}
 		
+		$loader._skipPreload = skipPreload;
+		
 		if(skipPreload) {
-			$loader._skipPreload = true;
 			$loader._waitForReadyInterval = setInterval($loader._waitForReady, 20);
 		} else {
-			$loader._skipPreload = false;
 			$loader.scriptTag(loadScriptURL, 'text/javascript');
 		}
 	},
