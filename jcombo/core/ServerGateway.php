@@ -8,22 +8,51 @@ require_once(dirname(__FILE__).'/ServerInterface.php');
 class ServerGateway {
 	private static $request;
 	private static $error;
-	private static $crossDomain = false;
-	private static $allowedMap = array();
+	private static $allowedMap = array('*' => true);
 	
-	public static function crossDomainMode($bool) {
-		self::$crossDomain = $bool;
+	public static function restrict() {
+		self::$allowedMap = array('*' => false);
 	}
 	
-	public static function allowCrossDomainClass($className) {
-		self::$allowedMap[$className] = true;
+	public static function unrestrict() {
+		self::$allowedMap = array('*' => true);
 	}
 	
-	public static function allowCrossDomainMethod($className, $methodName) {
-		if(!isset(self::$allowedMap[$className]) || self::$allowedMap[$className] === true) {
+	public static function allow($className, $methodName=null) {
+		if(!$methodName) {
 			self::$allowedMap[$className] = array();
+			self::$allowedMap[$className]['*'] = true;
+		} else {
+			if(!isset(self::$allowedMap[$className])) {
+				self::$allowedMap[$className] = array();
+			}
+			self::$allowedMap[$className][$methodName] = true;
 		}
-		self::$allowedMap[$className][$methodName] = true;
+	}
+	
+	public static function forbid($className, $methodName=null) {
+		if(!$methodName) {
+			self::$allowedMap[$className] = array();
+			self::$allowedMap[$className]['*'] = false;
+		} else {
+			if(!isset(self::$allowedMap[$className])) {
+				self::$allowedMap[$className] = array();
+			}
+			self::$allowedMap[$className][$methodName] = false;
+		}
+	}
+	
+	public static function isAllowed($className, $methodName) {
+		$permissive = self::$allowedMap['*'];
+		
+		if(isset(self::$allowedMap[$className])) {
+			$allowedClass = isset(self::$allowedMap[$className]['*']) ? self::$allowedMap[$className]['*'] : $permissive;
+			$allowedMethod = isset(self::$allowedMap[$className][$methodName]) ? self::$allowedMap[$className][$methodName] : $allowedClass;
+		} else {
+			$allowedMethod = $permissive;
+		}
+		
+		return $allowedMethod;
 	}
 	
 	/*
@@ -66,17 +95,13 @@ class ServerGateway {
 		
 		ServerInterface::clearTriggeredEvents();
 		
-		if(self::$crossDomain) {
-			$className = self::$request['className'];
-			$methodName = self::$request['method'];
-			if((isset(self::$allowedMap[$className]) && self::$allowedMap[$className] === true) || 
-					(isset(self::$allowedMap[$className][$methodName]) && self::$allowedMap[$className][$methodName] === true)) {
-				$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
-			} else {
-				throw new InvalidCrossDomainCallException($className, $methodName);
-			}
+		$className = self::$request['className'];
+		$methodName = self::$request['method'];
+		
+		if(self::isAllowed($className, $methodName)) {
+			$result = @call_user_func_array($className.'::'.$methodName, self::$request['params']);
 		} else {
-			$result = @call_user_func_array(self::$request['className'].'::'.self::$request['method'], self::$request['params']);
+			throw new UnauthorizedCallException($className, $methodName);
 		}
 		self::respond($result);
 	}
@@ -132,9 +157,9 @@ class ServerGateway {
 	}
 }
 
-class InvalidCrossDomainCallException extends Exception {
+class UnauthorizedCallException extends Exception {
 	public function __construct($className, $methodName) {
-		parent::__construct('The method \''.$methodName.'\' of the server interface class \''.$className.'\' cannot be called from a third-party domain.');
+		parent::__construct('Unauthorized call to the \''.$methodName.'\' method of the server interface class \''.$className.'\'');
 	}
 }
 
