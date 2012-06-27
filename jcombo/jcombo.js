@@ -273,12 +273,17 @@ var $j = {
 		_deepResourcesLoaded: {},
 		_scriptTagPendingQueue: [],
 		_linkTagPendingQueue: [],
+		_extRegex: /[.][^\/\\]*$/,
 		
 		/**
 			Include a script from the application's script directory into the current script.
 		*/
 		script: function(name, successCallback, errorCallback) {
-			var resourceName = $j._appScriptsURL + name + '.js';
+			if($j.grab._extRegex.test(name)) {
+				var resourceName = $j._appScriptsURL + name;
+			} else {
+				var resourceName = $j._appScriptsURL + name + '.js';
+			}
 			if(!$j.grab._activeScripts[resourceName]) {
 				$j.grab.loadAndEmbedScript(resourceName, successCallback, errorCallback);
 				$j.grab._activeScripts[resourceName] = true;
@@ -289,7 +294,11 @@ var $j = {
 			Include a script from jCombo's javascript library directory into the current script.
 		*/
 		lib: function(name, successCallback, errorCallback) {
-			var resourceName = $j._jsLibsURL + name + '.js';
+			if($j.grab._extRegex.test(name)) {
+				var resourceName = $j._jsLibsURL + name;
+			} else {
+				var resourceName = $j._jsLibsURL + name + '.js';
+			}
 			if(!$j.grab._activeScripts[resourceName]) {
 				$j.grab.loadAndEmbedScript(resourceName, successCallback, errorCallback);
 				$j.grab._activeScripts[resourceName] = true;
@@ -311,7 +320,11 @@ var $j = {
 			Include an application CSS stylesheet (from the application directory) into the application.
 		*/
 		appCSS: function(name, successCallback, errorCallback) {
-			var resourceName = $j._appStylesURL + name + '.css';
+			if($j.grab._extRegex.test(name)) {
+				var resourceName = $j._appStylesURL + name;
+			} else {
+				var resourceName = $j._appStylesURL + name + '.css';
+			}
 			if(!$j.grab._activeCSS[resourceName]) {
 				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
@@ -322,7 +335,11 @@ var $j = {
 			Include a default framework CSS stylesheet (from the jcombo framework directory) into the application.
 		*/
 		frameworkCSS: function(name, successCallback, errorCallback) {
-			var resourceName = $j._frameworkStylesURL + name + '.css';
+			if($j.grab._extRegex.test(name)) {
+				var resourceName = $j._frameworkStylesURL + name;
+			} else {
+				var resourceName = $j._frameworkStylesURL + name + '.css';
+			}
 			if(!$j.grab._activeCSS[resourceName]) {
 				$j.grab.loadAndEmbedCSS(resourceName, successCallback, errorCallback);
 				$j.grab._activeCSS[resourceName] = true;
@@ -994,6 +1011,7 @@ $j.Template = $j.mixin(function() {
 	self._text = null;
 	self._loaded = false;
 	self._name = null;
+	self._extRegex = /[.][^\/\\]*$/;
 	
 	self.getName = function() {
 		return self._name;
@@ -1001,7 +1019,11 @@ $j.Template = $j.mixin(function() {
 	
 	self.grab = function(name) {
 		self._name = name;
-		var url = $j._appTemplatesURL + name + '.handlebars';
+		if(self._extRegex.test(self._name)) {
+			var url = $j._appTemplatesURL + name;
+		} else {
+			var url = $j._appTemplatesURL + name + '.handlebars';
+		}
 		
 		$j.grab._loadDeepResourceToCache(url, function(url, data) {
 			$j.grab._resourcesGrabbed.push(url);
