@@ -53,7 +53,7 @@ var jLoad = {
 		imgEl.setAttribute('border', '0px');
 		
 		jLoad._loaderTextBox = document.createElement('div');
-		jLoad._loaderTextBox.style.marginTop = '4px';
+		jLoad._loaderTextBox.style.marginTop = '2px';
 		jLoad._loaderTextBox.style.fontFamily = 'Arial';
 		jLoad._loaderTextBox.style.fontSize = '12px';
 		jLoad._loaderTextBox.style.color = '#666';
