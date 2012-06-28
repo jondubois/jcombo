@@ -265,25 +265,31 @@ var $loader = {
 	
 	_loadDeepResourceToCache: function(url, successCallback, errorCallback, rootURL) {
 		if(!$loader._resourcesLoadedMap[url]) {
+			var resourceData = null;
+			
 			if(!rootURL || url == rootURL) {
 				rootURL = url;
+				//$loader._resources.push(url);
 				$loader._deepResources[rootURL] = [];
+				$loader._deepResources[rootURL].push(url);
+				
 				$loader._deepResourcesLoaded[rootURL] = [];
 			}
-			
-			$loader._deepResources[rootURL].push(url);
 			
 			if(/[.](png|jpg|gif)$/.test(url)) {
 				// images
 				var img = new Image();
 				img.onload = function() {
+					if(url == rootURL) {
+						resourceData = img;
+					}	
 					$loader._resourcesLoadedMap[url] = true;
 					$loader._deepResourcesLoaded[rootURL].push(url);
 					
 					if($loader._deepResourcesLoaded[rootURL].length >= $loader._deepResources[rootURL].length) {
 						$loader._resourcesLoaded.push(rootURL);
 						if(successCallback) {
-							successCallback(rootURL);
+							successCallback(rootURL, resourceData);
 						}
 					}
 				};
@@ -303,8 +309,13 @@ var $loader = {
 					url: url,
 					type: "GET",
 					success: function(data) {
+						if(url == rootURL) {
+							resourceData = data;
+						}
+						
 						$loader._resourcesLoadedMap[url] = true;
 						$loader._deepResourcesLoaded[rootURL].push(url);
+						
 						var urls, nonLoadedURLs;
 						if(/[.]css$/.test(url)) {
 							nonLoadedURLs = [];
@@ -331,7 +342,7 @@ var $loader = {
 						if($loader._deepResourcesLoaded[rootURL].length >= $loader._deepResources[rootURL].length) {
 							$loader._resourcesLoaded.push(rootURL);
 							if(successCallback) {
-								successCallback(rootURL);
+								successCallback(rootURL, resourceData);
 							}
 						}
 					},
@@ -347,13 +358,13 @@ var $loader = {
 			}
 		}
 	},
-	
+		
 	_parseDeepCSSURLs: function(fileContent, fileURL) {
 		var urlMap = {};
 		var urls = [];
 		var fileDirURL = fileURL.match(/^(.*)\//)[0];
 		
-		var chuncks = $j.grab._parseFunctionCalls(fileContent, ['url']);
+		var chuncks = $loader._parseFunctionCalls(fileContent, ['url']);
 		
 		var imports = fileContent.match(/@import +["'][^"']+["']/g);
 		if(imports) {
@@ -379,7 +390,7 @@ var $loader = {
 			
 		return urls;
 	},
-	
+		
 	_parseFunctionCalls: function(string, functionNames) {
 		var functionCalls = [];
 		var functionsRegex = new RegExp('(([^A-Za-z0-9]|^)' + functionNames.join(' *[(]|([^A-Za-z0-9]|^)') + ' *[(])', 'gm');
