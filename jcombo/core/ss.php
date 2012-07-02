@@ -3,6 +3,7 @@
 * This file serves as a server service interface to facilitate accessing server interface classes from other server side scripts.
 */
 
+require_once(dirname(__FILE__).'/ServerGateway.php');
 require_once(dirname(__FILE__).'/../config.php');
 
 $relDir = dirname($_SERVER['SCRIPT_FILENAME']).'/';

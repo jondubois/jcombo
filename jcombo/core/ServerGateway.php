@@ -3,12 +3,68 @@
 * This class helps facilitate the task of accessing server-side PHP classes via AJAX using JSON requests.
 */
 
+require_once(dirname(__FILE__).'/EventEmitter.php');
 require_once(dirname(__FILE__).'/ServerInterface.php');
 
 class ServerGateway {
 	private static $request;
 	private static $error;
+	private static $eventEmitter = null;
 	private static $allowedMap = array('*' => true);
+	private static $tempMode = null;
+	
+	const ERROR_EVENT = 'errorevent';
+	const EXCEPTION_EVENT = 'exceptionevent';
+	
+	public static function prepare() {
+		self::$eventEmitter = new EventEmitter();
+	}
+	
+	public static function setReleaseMode($boolean) {
+		if($boolean) {
+			self::$tempMode = 'release';
+		} else {
+			self::$tempMode = 'debug';
+		}
+	}
+	
+	public static function isDefaultModeSet() {
+		return isset($_SESSION['jcReleaseMode']);
+	}
+	
+	public static function isInReleaseMode() {
+		return self::$tempMode == 'release' || (isset($_SESSION['jcReleaseMode']) && $_SESSION['jcReleaseMode']);
+	}
+	
+	public static function addErrorListener($callback) {
+		self::$eventEmitter->addEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	public static function removeErrorListener($callback) {
+		self::$eventEmitter->removeEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	private static function triggerErrorEvent($error) {
+		$callbacks = self::$eventEmitter->getEventListeners(self::ERROR_EVENT);
+		foreach($callbacks as $callback) {
+			call_user_func($callback, $error);
+		}
+	}
+	
+	public static function addExceptionListener($callback) {
+		self::$eventEmitter->addEventListener(self::EXCEPTION_EVENT, $callback);
+	}
+	
+	public static function removeExceptionListener($callback) {
+		self::$eventEmitter->removeEventListener(self::EXCEPTION_EVENT, $callback);
+	}
+	
+	private static function triggerExceptionEvent($errorMessage) {
+		$callbacks = self::$eventEmitter->getEventListeners(self::EXCEPTION_EVENT);
+		foreach($callbacks as $callback) {
+			call_user_func($callback, $errorMessage);
+		}
+	}
 	
 	public static function restrict() {
 		self::$allowedMap = array('*' => false);
@@ -103,12 +159,13 @@ class ServerGateway {
 		} else {
 			throw new UnauthorizedCallException($className, $methodName);
 		}
-		self::respond($result);
+		
+		return $result;
 	}
 	
 	public static function handleException($e) {
 		self::$error = array('type'=>'', 'message'=>$e->getMessage(), 'file'=>$e->getFile(), 'line'=>$e->getLine());
-		self::respondException($e);
+		self::triggerExceptionEvent(self::compileExceptionMessage($e));
 	}
 	
 	/*
@@ -117,7 +174,45 @@ class ServerGateway {
 	*/
 	public static function handleError($errno, $errstr, $errfile, $errline) {
 		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		self::respondException(new ProgramCrashError($errno, $errstr, $errfile, $errline));
+		self::triggerExceptionEvent(self::compileExceptionMessage(new ProgramCrashError($errno, $errstr, $errfile, $errline)));
+	}
+	
+	public static function compileExceptionMessage($exception) {
+		if(!self::isInReleaseMode()) {
+			$backtrace = $exception->getTraceAsString();
+			return 'ServerGatewayError: ['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
+		} else {
+			return $exception->getMessage();
+		}
+	}
+	
+	private static function errorNumberToString($errorNumber) {
+		if(!$errorNumber) {
+			$errorType = 'Exception';
+		} else if($errorNumber == E_ERROR) {
+			$errorType = 'Fatal Error';
+		} else if($errorNumber == E_WARNING) {
+			$errorType = 'Warning';
+		} else if($errorNumber == E_PARSE) {
+			$errorType = 'Parse Error';
+		} else if($errorNumber == E_NOTICE) {
+			$errorType = 'Notice';
+		} else if($errorNumber == E_USER_ERROR) {
+			$errorType = 'Fatal Error';
+		} else if($errorNumber == E_USER_WARNING) {
+			$errorType = 'Warning';
+		} else if($errorNumber == E_USER_NOTICE) {
+			$errorType = 'Notice';
+		} else if($errorNumber == E_STRICT) {
+			$errorType = 'Strict Error';
+		} else if($errorNumber == E_RECOVERABLE_ERROR) {
+			$errorType = 'Fatal Error';
+		} else if($errorNumber == E_USER_DEPRECATED) {
+			$errorType = 'Deprecated Error';
+		} else {
+			$errorType = 'Error';
+		}
+		return $errorType;
 	}
 	
 	public static function handleShutdown() {
@@ -129,33 +224,16 @@ class ServerGateway {
 		}
 		
 		if(isset($error)) {
-			$errorType = $error['type'];
-			
-			Router::reportError($error);
-			
-			if($errorType == E_ERROR || $errorType == E_USER_ERROR) {
-				header('Location: fatalerror.php?message='.urlencode($error['message']).'&file='.urlencode(preg_replace('/\\\\/', '/', $error['file'])).'&line='.urlencode($error['line']));
-			}
+			self::triggerErrorEvent($error);
 		}
 	}
-	
-	/*
-		Sends back an error response to the client.
-	*/
-	public static function respondException($exception) {
-		self::respond(Router::compileExceptionMessage($exception), false);
-	}
-	
-	/* 
-		Sends back a response to the client.
-	*/
-	public static function respond($object, $success=true) {
-		header('Content-type: application/json');
-		$eventLog = ServerInterface::getTriggeredEvents();
-		echo '{"success":'.($success ? 'true' : 'false').',"value":'.json_encode($object).',"eventLog":'.json_encode($eventLog).'}';
-		exit;
-	}
 }
+
+register_shutdown_function(array('ServerGateway', 'handleShutdown'));
+set_error_handler(array('ServerGateway', 'handleError'));
+set_exception_handler(array('ServerGateway', 'handleException'));
+
+ServerGateway::prepare();
 
 class UnauthorizedCallException extends Exception {
 	public function __construct($className, $methodName) {

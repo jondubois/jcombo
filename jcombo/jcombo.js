@@ -271,8 +271,7 @@ var $j = {
 		_resourcesLoadedMap: {},
 		_deepResources: {},
 		_deepResourcesLoaded: {},
-		_scriptTagPendingQueue: [],
-		_linkTagPendingQueue: [],
+		_embedQueue: [],
 		_extRegex: /[.][^\/\\]*$/,
 		
 		/**
@@ -386,41 +385,33 @@ var $j = {
 			return templ;
 		},
 		
-		_processScriptEmbedQueue: function() {
+		_processEmbedQueue: function() {
 			var curTag;
-			while($j.grab._scriptTagPendingQueue.length > 0) {
-				curTag = $j.grab._scriptTagPendingQueue[0];
+			while($j.grab._embedQueue.length > 0) {
+				curTag = $j.grab._embedQueue[0];
 				if(curTag.ready) {
-					$j.grab.scriptTag(curTag.url, 'text/javascript', null, function() {
+					if(curTag.type == 'link') {
+						$j.grab.linkTag(curTag.url, 'text/css', 'stylesheet');
 						$j.grab._resourcesGrabbed.push(curTag.url);
 						if(curTag.successCallback) {
-							curTag.successCallback(url);
+							curTag.successCallback(curTag.url);
 						}
 						if(!$j.grab.isGrabbing()) {
 							$j._triggerReady();
 						}
-					});
-					$j.grab._scriptTagPendingQueue.shift();
-				} else {
-					break;
-				}
-			}
-		},
-		
-		_processLinkEmbedQueue: function() {
-			var curTag;
-			while($j.grab._linkTagPendingQueue.length > 0) {
-				curTag = $j.grab._linkTagPendingQueue[0];
-				if(curTag.ready) {
-					$j.grab.linkTag(curTag.url, 'text/css', 'stylesheet');
-					$j.grab._resourcesGrabbed.push(curTag.url);
-					if(curTag.successCallback) {
-						curTag.successCallback(curTag.url);
+						
+					} else if(curTag.type == 'script') {
+						$j.grab.scriptTag(curTag.url, 'text/javascript', null, function() {
+							$j.grab._resourcesGrabbed.push(curTag.url);
+							if(curTag.successCallback) {
+								curTag.successCallback(url);
+							}
+							if(!$j.grab.isGrabbing()) {
+								$j._triggerReady();
+							}
+						});
 					}
-					if(!$j.grab.isGrabbing()) {
-						$j._triggerReady();
-					}
-					$j.grab._linkTagPendingQueue.shift();
+					$j.grab._embedQueue.shift();
 				} else {
 					break;
 				}
@@ -428,20 +419,20 @@ var $j = {
 		},
 		
 		loadAndEmbedScript: function(url, successCallback, errorCallback) {
-			var tagData = {url: url, successCallback: successCallback, ready: false};
-			$j.grab._scriptTagPendingQueue.push(tagData);
+			var tagData = {type: 'script', url: url, successCallback: successCallback, ready: false};
+			$j.grab._embedQueue.push(tagData);
 			$j.grab._loadDeepResourceToCache(url, function() {
 				tagData.ready = true;
-				$j.grab._processScriptEmbedQueue();
+				$j.grab._processEmbedQueue();
 			}, errorCallback);
 		},
 		
 		loadAndEmbedCSS: function(url, successCallback, errorCallback) {
-			var tagData = {url: url, successCallback: successCallback, ready: false}
-			$j.grab._linkTagPendingQueue.push(tagData);
+			var tagData = {type: 'link', url: url, successCallback: successCallback, ready: false}
+			$j.grab._embedQueue.push(tagData);
 			$j.grab._loadDeepResourceToCache(url, function() {
 				tagData.ready = true;
-				$j.grab._processLinkEmbedQueue();
+				$j.grab._processEmbedQueue();
 			}, errorCallback);
 		},
 		

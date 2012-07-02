@@ -12,11 +12,9 @@ class Router {
 	private static $jsFiles;
 	private static $jsPluginFiles;
 	private static $cssFiles;
-	private static $error = false;
 	private static $headCode = '';
 	private static $bodyCode = '';
 	private static $eventEmitter = null;
-	private static $tempMode = null;
 	const INCLUDE_FILE = 'include.conf';
 	const ERROR_EVENT = 'errorevent';
 	
@@ -34,8 +32,6 @@ class Router {
 	public static function init($applicationDirPath, $releaseMode=false, $logErrors=true) {
 		ob_start(array('Router', 'outputBuffer'));
 		
-		self::$error = false;
-		self::$tempMode = null;
 		self::$logErrors = $logErrors;
 		self::$applicationDirPath = self::cleanFormatDirPath(realpath($applicationDirPath));
 		
@@ -44,10 +40,6 @@ class Router {
 		
 		require_once(self::$applicationDirPath.'config.php');
 		$_SESSION['jcReleaseMode'] = $releaseMode;
-		
-		register_shutdown_function(array('Router', 'handleShutdown'));
-		set_error_handler(array('Router', 'handleError'));
-		set_exception_handler(array('Router', 'handleException'));
 		
 		self::$scripts = array();
 		self::$serverInterfaces = array();
@@ -64,22 +56,6 @@ class Router {
 		self::useAllServerInterfaces();
 		self::includeDefaultLibsJS();
 		self::includeDefaultPluginsJS();
-	}
-	
-	public static function setReleaseMode($boolean) {
-		if($boolean) {
-			self::$tempMode = 'release';
-		} else {
-			self::$tempMode = 'debug';
-		}
-	}
-	
-	public static function isDefaultModeSet() {
-		return isset($_SESSION['jcReleaseMode']);
-	}
-	
-	public static function isInReleaseMode() {
-		return self::$tempMode == 'release' || (isset($_SESSION['jcReleaseMode']) && $_SESSION['jcReleaseMode']);
 	}
 	
 	/**
@@ -446,12 +422,18 @@ class Router {
 		self::$headCode .= "<link rel=\"stylesheet\" type=\"text/css\" href=\"$cssURL\" />\n";
 	}
 	
-	public static function compileExceptionMessage($exception) {
-		if(!self::isInReleaseMode()) {
-			$backtrace = $exception->getTraceAsString();
-			return 'ServerGatewayError: ['.self::errorNumberToString($exception->getCode()).'] '.$exception->getMessage().' in '.$exception->getFile().' on line '.$exception->getLine()." \nBacktrace: \n$backtrace";
-		} else {
-			return $exception->getMessage();
+	public static function addErrorListener($callback) {
+		self::$eventEmitter->addEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	public static function removeErrorListener($callback) {
+		self::$eventEmitter->removeEventListener(self::ERROR_EVENT, $callback);
+	}
+	
+	private static function triggerErrorEvent($errorMessage) {
+		$callbacks = self::$eventEmitter->getEventListeners(self::ERROR_EVENT);
+		foreach($callbacks as $callback) {
+			call_user_func($callback, $errorMessage);
 		}
 	}
 	
@@ -484,21 +466,6 @@ class Router {
 		return $errorType;
 	}
 	
-	public static function addErrorListener($callback) {
-		self::$eventEmitter->addEventListener(self::ERROR_EVENT, $callback);
-	}
-	
-	public static function removeErrorListener($callback) {
-		self::$eventEmitter->removeEventListener(self::ERROR_EVENT, $callback);
-	}
-	
-	private static function triggerErrorEvent($errorMessage) {
-		$callbacks = self::$eventEmitter->getEventListeners(self::ERROR_EVENT);
-		foreach($callbacks as $callback) {
-			call_user_func($callback, $errorMessage);
-		}
-	}
-	
 	/*
 	* Report an error to the router. If error logging is turned on, The router will append the error
 	* to the application's errors.txt file.
@@ -520,28 +487,9 @@ class Router {
 		self::triggerErrorEvent($longErrorMessage);
 	}
 	
-	public static function handleException($e) {
-		$errstr = $e->getMessage();
-		$errfile = $e->getFile();
-		$errline = $e->getLine();
-		
-		self::$error = array('type'=>'', 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		exit;
-	}
-	
-	public static function handleError($errno, $errstr, $errfile, $errline) {
-		self::$error = array('type'=>$errno, 'message'=>$errstr, 'file'=>$errfile, 'line'=>$errline);
-		$errorType = self::errorNumberToString($errno);
-		exit;
-	}
-	
 	public static function handleShutdown() {
 		$error = error_get_last();
 		restore_error_handler();
-		
-		if(self::$error && !isset($error)) {
-			$error = self::$error;
-		}
 		
 		if(isset($error)) {
 			ob_clean();
@@ -595,5 +543,6 @@ class Router {
 	}
 }
 
+register_shutdown_function(array('Router', 'handleShutdown'));
 Router::prepare();
 ?>
